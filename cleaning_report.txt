@@ -1,0 +1,3 @@
+Initial Rows: 761
+Final Rows: 754
+Total Rows Removed: 7

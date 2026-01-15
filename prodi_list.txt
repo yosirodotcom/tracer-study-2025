@@ -1,0 +1,29 @@
+Unique Program Studi values:
+- D3 - Teknologi Budidaya Perikanan
+- D4 - Perencanaan Perumahan Dan Pemukiman
+- D4 - Arsitektur Bangunan Gedung
+- D3 - Arsitektur
+- D3 - Teknologi Mesin (Sanggau)
+- D4 - Budidaya Tanaman Perkebunan
+- D3 - Akuntansi
+- D4 - Teknik Mesin
+- D3 - Teknik Informatika
+- D3 - Administrasi Bisnis
+- D4 - Administrasi Negara
+- D2 - Pemeliharaan Kendaraan Ringan
+- D3 - Teknik Mesin
+- D3 - Teknik Listrik
+- D3 - Teknologi Pengolahan Hasil Perkebunan
+- D4 - Pengolahan Hasil Perkebunan Terpadu
+- D4 - Desain Kawasan Binaan
+- D4 - Akuntansi
+- D3 - Teknologi Penangkapan Ikan
+- D4 - Manajemen Perkebunan
+- D4 - Administrasi Bisnis Otomotif
+- D1 - Operator dan Peralatan Alat Berat
+- D3 - Teknik Sipil
+- D3 - Budi Daya Ikan (Sukamara)
+- D3 - Teknologi Budidaya Perikanan (Kapuas Hulu)
+- D3 - Teknologi Pengolahan Hasil Perikanan
+- D4 - Teknologi Rekayasa Sistem Elektronika
+- D3 - Teknik Elektronika

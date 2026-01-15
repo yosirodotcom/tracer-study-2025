@@ -1,0 +1,39 @@
+
+--- Unique Jurusan ---
+Column 'Jurusan' NOT FOUND.
+
+--- Unique prodi ---
+Count: 26
+- Teknologi Budidaya Perikanan
+- Perencanaan Perumahan Dan Pemukiman
+- Arsitektur Bangunan Gedung
+- Arsitektur
+- Teknologi Mesin (Sanggau)
+- Budidaya Tanaman Perkebunan
+- Akuntansi
+- Teknik Mesin
+- Teknik Informatika
+- Administrasi Bisnis
+- Administrasi Negara
+- Pemeliharaan Kendaraan Ringan
+- Teknik Listrik
+- Teknologi Pengolahan Hasil Perkebunan
+- Pengolahan Hasil Perkebunan Terpadu
+- Desain Kawasan Binaan
+- Teknologi Penangkapan Ikan
+- Manajemen Perkebunan
+- Administrasi Bisnis Otomotif
+- Operator dan Peralatan Alat Berat
+- Teknik Sipil
+- Budi Daya Ikan (Sukamara)
+- Teknologi Budidaya Perikanan (Kapuas Hulu)
+- Teknologi Pengolahan Hasil Perikanan
+- Teknologi Rekayasa Sistem Elektronika
+- Teknik Elektronika
+
+--- Unique diploma ---
+Count: 4
+- D3
+- D4
+- D2
+- D1

@@ -1,0 +1,13 @@
+--- Column: Jelaskan status Anda saat ini? ---
+Jelaskan status Anda saat ini?
+Bekerja (Full time/Part time)              492
+Tidak kerja tetapi sedang mencari kerja    168
+Wiraswasta                                  65
+Melanjutkan Pendidikan                      15
+Belum memungkinkan bekerja                  14
+Name: count, dtype: int64
+
+--- Column: Dalam berapa bulan Anda mendapatkan pekerjaan? Tulis dengan angka (Contoh: 1, 1Tahun = 12 bulan) ---
+['6 bulan' 1 '1/2 tahun, seblum lulus' '1 bulan setelah lulus' 2 '1 bulan'
+ '12 bulan' '1.3 tahun' 12 '0,8 = 8 bulan' '9 bulan' ' 1 Tahun' '3 bulan'
+ '-' '10 bulan' '1tahun' '21 Bulan' '24 bulan' '1 Tahun' 5]
