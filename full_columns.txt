@@ -1,0 +1,62 @@
+Columns in data.xlsx:
+- Timestamp
+- Email Address
+- Nama Mahasiswa
+- Nomor Induk Mahasiswa (NIM)
+- Nomor Handphone
+- NIK
+- Tahun Lulus
+- Jurusan 
+- Program Studi
+- No. NPWP / SIUP (Jika ada)
+- Nama Perusahaan Tempat Bekerja (Jika Anda sudah bekerja)
+- Nama Atasan
+- Kontak Atasan (Email atau No Telepon)
+- Jelaskan status Anda saat ini?
+- Apakah anda telah mendapatkan pekerjaan <=6 bulan / termasuk bekerja sebelum lulus?
+- Dalam berapa bulan Anda mendapatkan pekerjaan? Tulis dengan angka (Contoh: 1, 1Tahun = 12 bulan)
+- Dalam berapa bulan Anda mendapatkan pekerjaan? Tulis dengan angka (Contoh: 1, 1Tahun = 12 bulan) rev2
+- Berapa rata-rata pendapatan Anda per bulan?
+- Provinsi 
+- Provinsi rev
+- Kota/Kabupaten
+- Kota/Kabupate rev
+- Apa jenis Perusahaan/Instansi/Institusi tempat Anda bekerja sekarang?
+- Apa nama perusahaan/kantor tempat Anda bekerja?
+- Apaila berwiraswasta, apa posisi/jabatan Anda saat ini? (Status Wiraswasta)
+- Apa tingkat tempat kerja Anda?
+- Sumber biaya 
+- Perguruan Tinggi
+- Program Studi 
+- Tanggal Masuk (Contoh: 7 Januari 2020)
+- Sumber dana dalam pembiayaan kuliah (bukan ketika studi lanjut)
+- Seberapa erat hubungan bidang studi dengan pekerjaan Anda? 
+- Tingkat pendidikan apa yang paling tepat/sesuai untuk pekerjaan Anda saat ini?
+- Etika
+- Keahlian berdasarkan bidang ilmu 
+- Bahasa Inggris 
+- Penggunaan Teknologi Informasi 
+- Komunikasi 
+- Kerjasama Tim 
+- Pengembangan 
+- Etika 
+- Keahlian berdasarkan bidang ilmu
+- Bahasa Inggris  2
+- Penggunaan Teknologi Informasi
+- Komunikasi  2
+- Kerjasama Tim  2
+- Pengembangan  2
+- Perkuliahan
+- Demonstrasi 
+- Partisipasi dalam proyek riset 
+- Magang 
+- Praktikum 
+- Kerja Lapangan
+- Diskusi 
+- Kapan Anda mulai cari pekerjaan? (Mohon pekerjaan sambilan tidak dimasukkan)
+- Bagaimana Anda mencari pekerjaan tersebut? (jawaban bisa lebih dari satu
+- Berapa Perusahaan/Instansi/Institusi yang sudah Anda lamar (lewat surel atau email) sebelum Anda memperoleh pekerjaan pertama?
+- Berapa banyak Perusahaan/Instansi/Institusi yang merespon lamaran Anda?
+- Berapa banyak Perusahaann/Instansi/Institusi yang mengundang Anda untuk wawancara?
+- Apakah Anda aktif mencari pekerjaan dalam 4 minggu terakhir? 
+- Jika menurut Anda pekerjaan saat ini tidak sesuai dengan pendidikan Anda, mengapa  mengambilnya? Jawaban bisa lebih dari satu

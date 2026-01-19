@@ -134,50 +134,19 @@ print("\n--- Processing Status and Duration ---")
 col_status = "Jelaskan status Anda saat ini?"
 col_duration = "Dalam berapa bulan Anda mendapatkan pekerjaan? Tulis dengan angka (Contoh: 1, 1Tahun = 12 bulan)"
 
-def clean_duration_value(val):
-    if pd.isna(val) or str(val).strip() == '-':
-        return np.nan
-    
-    val_str = str(val).lower().replace(',', '.')
-    
-    # Handle "seblum lulus" or "sebelum lulus" -> 0
-    if "seblum lulus" in val_str or "sebelum lulus" in val_str:
-        return 0
-        
-    # Handle "0.8 = 8 bulan" specific case because regex would catch 0.8
-    if "0.8 = 8" in val_str:
-        return 8
-        
-    multiplier = 1
-    if "tahun" in val_str:
-        multiplier = 12
-        
-    # Handle "1/2" or "setengah"
-    if "1/2" in val_str or "setengah" in val_str:
-        return 6 * multiplier
-            
-    # Regex to find numbers
-    numbers = re.findall(r"[-+]?\d*\.\d+|\d+", val_str)
-    if numbers:
-        try:
-            # Take the first number found
-            num = float(numbers[0])
-            return int(round(num * multiplier))
-        except ValueError:
-            return np.nan
-            
-    return np.nan
+
 
 # Clean Duration Column if it exists (it might have been removed if user requested, but check list)
 # Wait, did user remove it? The previous step removed "Timestamp, Email, Name, Phone, NIK".
 # Duration is "Dalam berapa bulan...". Use checks.
 
-if col_duration in df.columns:
-    print(f"Cleaning column: {col_duration}")
-    df[col_duration] = df[col_duration].apply(clean_duration_value)
-    print("Duration column cleaned to numeric/NaN.")
+# User requested to keep 'rev2' as is.
+col_duration_rev2 = "Dalam berapa bulan Anda mendapatkan pekerjaan? Tulis dengan angka (Contoh: 1, 1Tahun = 12 bulan) rev2"
+if col_duration_rev2 not in df.columns:
+    print(f"WARNING: Duration column '{col_duration_rev2}' not found in source.")
+    col_duration_rev2 = None
 else:
-    print(f"WARNING: Duration column '{col_duration}' not found.")
+    print(f"Using original data for: {col_duration_rev2}")
 
 # Create Status Table
 if col_status in df.columns:
@@ -204,51 +173,70 @@ print("\n--- Mapping Company Categories ---")
 def mapping_rev_v2(teks):
     t = str(teks).strip().lower()
     
-    # --- 1. KELOMPOK TIDAK BEKERJA / TRANSISI ---
-    list_kosong = ['-', '.', '0', 'tidak ada', 'belum', 'blm', 'belm', 'mencari kerja', 'resign', 'irt']
-    if any(x == t for x in ['-', '.', '0']) or any(x in t for x in ['belum', 'tidak ada', 'mencari kerja', 'resign', 'irt']):
-        return 'Tidak Bekerja / Transisi'
-
-    # --- 2. ORGANISASI MULTILATERAL ---
-    if 'multilateral' in t:
-        return 'Organisasi Multilateral'
-
-    # --- 3. PENDIDIKAN (Termasuk Yayasan Sekolah) ---
-    if any(x in t for x in ['guru', 'sekolah', 'universitas', 'pendidikan', 'bimbel', 'dosen', 'nurul ummah']):
-        return 'Pendidikan'
-
-    # --- 4. ORGANISASI NON-PROFIT / LSM ---
-    if any(x in t for x in ['non-profit', 'lsm', 'yayasan pengembangan anak']):
-        return 'Organisasi Non-Profit / LSM'
-
-    # --- 5. PEMERINTAH (Instansi Murni) ---
+    # 1. Instansi Pemerintah
     if any(x in t for x in ['pemerintah', 'badan gizi', 'dinas', 'kementerian']):
-        return 'Pemerintah'
+        return 'Instansi Pemerintah'
 
-    # --- 6. BUMN / BUMD ---
-    if any(x in t for x in ['bumn', 'bumd', 'pertamina', 'pln', 'bank bri']):
-        return 'BUMN / BUMD'
+    # 2. Organisasi non-profit/Lembaga Swadaya Masyarakat
+    if any(x in t for x in ['non-profit', 'lsm', 'yayasan']):
+        return 'Organisasi non-profit/Lembaga Swadaya Masyarakat'
 
-    # --- 7. FREELANCE / KREATIF / GIG (Termasuk Usaha Online) ---
-    if any(x in t for x in ['freelance', 'creator', 'desain', 'interior', 'shoppefood', 'online']):
-        return 'Freelance / Kreatif'
+    # 3. BUMN/BUMD
+    if any(x in t for x in ['bumn', 'bumd', 'pertamina', 'pln', 'bank', 'bni', 'mandiri']) and not 'wiraswasta' in t and not 'usaha' in t:
+         # Note: 'bank' could be private too, but commonly associated with BUMN in indonesia (BRI, Mandiri, BNI). 
+         # However, user list has "Perusahaan Swasta". Let's try to be specific.
+         # Actually, 'Bank BRI', 'Mandiri' are BUMN. 'BCA' is Swasta.
+         # Let's keep the existing logic but change the return string.
+         if any(x in t for x in ['bri', 'mandiri', 'bni', 'btn']):
+             return 'BUMN/BUMD'
+         if any(x in t for x in ['bumn', 'bumd', 'pertamina', 'pln']):
+             return 'BUMN/BUMD'
 
-    # --- 8. PERUSAHAAN SWASTA (Termasuk Bengkel, Salon, Toko, Ekspedisi) ---
-    list_swasta_spesifik = ['bengkel', 'salon', 'tatto', 'toko baju', 'skincare', 'ekspedisi', 'klinik', 'kontraktor', 'telekomunikasi', 'hospitality', 'hiburan', 'pramuniaga', 'marketing', 'semua lini']
-    list_swasta_umum = ['swasta', 'perusahaan', 'pt', 'cv', 'fnb', 'f&b', 'teknisi', 'ritel', 'kilang', 'smelter', 'tambang']
-    
-    if any(x in t for x in list_swasta_spesifik + list_swasta_umum):
+    # 4. Institusi/Organisasi Multilateral
+    if 'multilateral' in t:
+        return 'Institusi/Organisasi Multilateral'
+
+    # 5. Wiraswasta/perusahaan sendiri
+    if any(x in t for x in ['wiraswasta', 'wirausaha', 'usaha sendiri', 'jualan', 'warung', 'founder', 'kerja sendiri', 'mandiri', 'freelance', 'creator', 'online']):
+        # Merged 'Freelance' here or 'Perusahaan Swasta'? 
+        # Usually Freelance is closer to self-employed (Wiraswasta).
+        # User said: "else ... lainnya". 
+        # But wait, "Wiraswasta/perusahaan sendiri" is in the list.
+        # Let's map Freelance to Wiraswasta if acceptable, or Lainnya?
+        # The user instruction was: `if data is not in this list ... else the it is what it is` (wait)
+        # "I want the data is "lainnya" if data is not in this list ... else the it is what it is"
+        # This implies: If the logic determines it belongs to one of the lists, use the list name.
+        # If the updated logic (which I am writing now) can't verify it belongs to a list, it becomes 'lainnya'.
+        return 'Wiraswasta/perusahaan sendiri'
+
+    # 6. Perusahaan Swasta
+    # Includes many things from before
+    list_swasta = [
+        'swasta', 'perusahaan', 'pt', 'cv', 'fnb', 'f&b', 'teknisi', 'ritel', 'kilang', 'smelter', 'tambang',
+        'bengkel', 'salon', 'tatto', 'toko', 'skincare', 'ekspedisi', 'klinik', 'kontraktor', 'telekomunikasi', 
+        'hospitality', 'hiburan', 'pramuniaga', 'marketing', 'konsultan', 'lawyer', 'notaris', 'apotek'
+    ]
+    if any(x in t for x in list_swasta):
         return 'Perusahaan Swasta'
 
-    # --- 9. WIRASWASTA / MANDIRI (Sisa dari Mandiri) ---
-    if any(x in t for x in ['wiraswasta', 'wirausaha', 'usaha sendiri', 'jualan', 'warung', 'founder', 'kerja sendiri', 'mandiri']):
-        return 'Wiraswasta / Mandiri'
+    # Additional Cleanup for specific known entities that might fall through
+    if 'bank' in t: # General bank usually private if not BUMN caught above
+        return 'Perusahaan Swasta'
 
-    # --- 10. INFORMAL / PERTANIAN ---
-    if any(x in t for x in ['petani', 'kebun', 'sawit', 'buruh', 'babysitter']):
-        return 'Informal / Pertanian'
+    if any(x in t for x in ['sekolah', 'universitas', 'guru', 'dosen', 'pendidikan']):
+        # User defined list DOES NOT have Education/Pendidikan.
+        # So it must be 'lainnya'?
+        # "Instansi Pemerintah" might cover public schools?
+        # "Perusahaan Swasta" might cover private schools?
+        # Safe bet according to prompt: "lainnya" if not in list.
+        # But maybe mapped to 'Instansi Pemerintah' if 'negeri'?
+        if 'negeri' in t:
+             return 'Instansi Pemerintah'
+        if 'swasta' in t:
+             return 'Perusahaan Swasta'
+        return 'lainnya'
 
-    return 'Lainnya / Belum Terklasifikasi'
+    return 'lainnya'
 
 
 # 2. Identifikasi Nama Kolom
@@ -268,6 +256,44 @@ if kolom_asal in df.columns:
         print(unmapped[kolom_asal].unique()[:20])
 else:
     print(f"WARNING: Column '{kolom_asal}' NOT FOUND. Skipping mapping.")
+
+
+
+# --- Validation Column ---
+# "valid column for Dalam berapa bulan Anda mendapatkan pekerjaan"
+# 1 if (<=6 bulan == "Ya" AND duration > 6) OR (<=6 bulan == "Tidak" AND duration <= 6) else 0
+
+col_valid_name = "valid column for Dalam berapa bulan Anda mendapatkan pekerjaan"
+col_check_6bulan = "Apakah anda telah mendapatkan pekerjaan <=6 bulan / termasuk bekerja sebelum lulus?"
+
+print("\n--- Adding Validation Column ---")
+if col_duration_rev2 and col_check_6bulan in df.columns:
+    def validation_logic(row):
+        val_6bulan = str(row[col_check_6bulan])
+        duration = row[col_duration_rev2] # This is numeric or NaN
+        
+        # Condition 1: Claimed <= 6 months (Ya) AND duration <= 6 (VALID)
+        cond1 = (val_6bulan == "Ya") and (pd.notna(duration) and duration <= 6)
+        
+        # Condition 2: Claimed > 6 months (Tidak) AND (duration > 6 OR Empty) (VALID)
+        cond2 = (val_6bulan == "Tidak") and ((pd.notna(duration) and duration > 6) or pd.isna(duration))
+        
+        if cond1 or cond2:
+            return 1
+        else:
+            return 0
+
+    df[col_valid_name] = df.apply(validation_logic, axis=1)
+    print(f"Created '{col_valid_name}'. Found {df[col_valid_name].sum()} flagged rows.")
+    
+    # Debug sample
+    flagged = df[df[col_valid_name] == 1]
+    if not flagged.empty:
+        print("Sample flagged rows (Check 6bulan vs Duration):")
+        print(flagged[[col_check_6bulan, col_duration_rev2]].head())
+
+else:
+    print(f"WARNING: Could not create validation column. Missing columns: {col_check_6bulan if col_check_6bulan not in df.columns else ''} {col_duration_rev2 if not col_duration_rev2 else ''}")
 
 # Save to new file
 output_file = 'cleaned_data.xlsx'

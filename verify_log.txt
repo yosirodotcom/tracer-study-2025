@@ -1,0 +1,22 @@
+Checking column: 'Apa jenis Perusahaan/Instansi/Institusi tempat Anda bekerja sekarang? rev'
+Unique values found:
+[OK] Instansi Pemerintah
+[OK] lainnya
+[OK] Wiraswasta/perusahaan sendiri
+[OK] Perusahaan Swasta
+[OK] BUMN/BUMD
+[OK] Organisasi non-profit/Lembaga Swadaya Masyarakat
+[OK] Institusi/Organisasi Multilateral
+
+SUCCESS: All values are within the allowed list.
+
+Distribution:
+Apa jenis Perusahaan/Instansi/Institusi tempat Anda bekerja sekarang? rev
+Perusahaan Swasta                                   358
+lainnya                                             145
+Wiraswasta/perusahaan sendiri                       116
+Instansi Pemerintah                                  76
+BUMN/BUMD                                            39
+Organisasi non-profit/Lembaga Swadaya Masyarakat     15
+Institusi/Organisasi Multilateral                     5
+Name: count, dtype: int64
