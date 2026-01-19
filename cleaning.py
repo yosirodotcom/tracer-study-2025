@@ -295,6 +295,77 @@ if col_duration_rev2 and col_check_6bulan in df.columns:
 else:
     print(f"WARNING: Could not create validation column. Missing columns: {col_check_6bulan if col_check_6bulan not in df.columns else ''} {col_duration_rev2 if not col_duration_rev2 else ''}")
 
+# --- Clean Workplace Level Column ---
+col_tingkat = "Apa tingkat tempat kerja Anda?"
+col_tingkat_rev = "Apa tingkat tempat kerja Anda? rev"
+
+print("\n--- Cleaning Workplace Level Column ---")
+if col_tingkat in df.columns:
+    # Remove leading numbers and space (e.g., "1 Lokal..." -> "Lokal...")
+    df[col_tingkat_rev] = df[col_tingkat].str.replace(r'^\d+\s+', '', regex=True)
+    print(f"Created '{col_tingkat_rev}'.")
+else:
+    print(f"WARNING: Column '{col_tingkat}' not found.")
+
+# --- Transform Competency Columns ---
+# User requested 1-5 to String mapping
+competency_mapping = {
+    1: "Tidak Menguasai",
+    2: "Kurang Menguasai",
+    3: "Menguasai",
+    4: "Cukup Menguasai",
+    5: "Sangat Menguasai"
+}
+
+def map_competency(val):
+    try:
+        if pd.isna(val): return val
+        ival = int(float(val))
+        return competency_mapping.get(ival, val)
+    except:
+        return val
+
+# Identify columns using robust whitespace stripping
+comp_cols_1 = ['Etika', 'Keahlian berdasarkan bidang ilmu', 'Bahasa Inggris', 'Penggunaan Teknologi Informasi', 'Komunikasi', 'Kerjasama Tim', 'Pengembangan']
+
+actual_cols_to_map = []
+
+# Map Set 1 (Suffix 1)
+for target in comp_cols_1:
+    found = False
+    for col in df.columns:
+        # Check patterns: "Name 1", "Name  1"
+        clean_col = col.strip()
+        if clean_col == target + " 1" or clean_col == target + "  1":
+            actual_cols_to_map.append(col)
+            found = True
+            break
+    if not found:
+        print(f"DEBUG: Set 1 target '{target}' (Suffix 1) NOT found matches.")
+
+# Map Set 2 (Suffix 2 or .1)
+for target in comp_cols_1:
+    found = False
+    for col in df.columns:
+        # Check patterns: "Name 2", "Name  2", "Name.1"
+        clean_col = col.strip()
+        if clean_col == target + " 2" or clean_col == target + ".1" or clean_col == target + "  2":
+             actual_cols_to_map.append(col)
+             found = True
+    if not found:
+        print(f"DEBUG: Set 2 target '{target}' NOT found matches.")
+
+print(f"\n--- Transforming Competency Columns ({len(actual_cols_to_map)}) ---")
+print(actual_cols_to_map)
+
+for col in actual_cols_to_map:
+    print(f"Mapping {col}...")
+    # Debug first value
+    first_val = df[col].iloc[0]
+    print(f"  First val before: {first_val} type {type(first_val)}")
+    df[col] = df[col].apply(map_competency)
+    print(f"  First val after: {df[col].iloc[0]}")
+
 # Save to new file
 output_file = 'cleaned_data.xlsx'
 df.to_excel(output_file, index=False)
