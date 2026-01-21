@@ -366,6 +366,65 @@ for col in actual_cols_to_map:
     df[col] = df[col].apply(map_competency)
     print(f"  First val after: {df[col].iloc[0]}")
 
+# --- Mapping Sumber Dana ---
+print("\n--- Mapping Sources of Funding ---")
+col_funding = "Sumber dana dalam pembiayaan kuliah (bukan ketika studi lanjut)"
+col_funding_rev = "Sumber dana dalam pembiayaan kuliah (bukan ketika studi lanjut) rev"
+
+allowed_funding = [
+    "Biaya Sendiri/Keluarga", 
+    "Beasiswa ADIK", 
+    "Beasiswa BIDIKMISI", 
+    "Beasiswa PPA", 
+    "Beasiswa AFIRMASI", 
+    "Beasiswa Perusahaan/Swasta"
+]
+
+if col_funding in df.columns:
+    def map_funding(val):
+        if pd.isna(val):
+            return "Lainnya"
+        s_val = str(val).strip()
+        if s_val in allowed_funding:
+            return s_val
+        else:
+            return "Lainnya"
+
+    df[col_funding_rev] = df[col_funding].apply(map_funding)
+    print(f"Created '{col_funding_rev}'.")
+    print("Value Counts for new Funding Column:")
+    print(df[col_funding_rev].value_counts())
+else:
+    print(f"WARNING: Column '{col_funding}' not found.")
+
+# --- Clean Learning Method Columns ---
+print("\n--- Cleaning Learning Method Columns ---")
+learning_cols = ['Perkuliahan', 'Demonstrasi', 'Partisipasi dalam proyek riset', 'Magang', 'Praktikum', 'Kerja Lapangan', 'Diskusi']
+
+# Find actual columns in df that contain these keywords (exact match preferred based on request)
+# User listed exact names. Let's check if they exist or need fuzzy match.
+# Based on previous `py -c` output: "Perkuliahan", "Demonstrasi" etc. seem to exist directly.
+for col in learning_cols:
+    if col in df.columns:
+        print(f"Cleaning column: {col}")
+        # Remove digits and strip whitespace
+        # Example "1 Sangat Besar" -> "Sangat Besar"
+        # Example " 1. Sangat Besar" -> ". Sangat Besar" -> "Sangat Besar" (if strip is enough? or need to remove dot?)
+        # User said "remove number character and white space".
+        # Let's assume standard cleaning: remove digits, then strip.
+        df[col] = df[col].astype(str).str.replace(r'\d+', '', regex=True).str.strip()
+    else:
+        # Check for columns that might be variations (whitespace etc)
+        found = False
+        for existing in df.columns:
+            if existing.strip() == col:
+                print(f"Cleaning column (strip match): {existing}")
+                df[existing] = df[existing].astype(str).str.replace(r'\d+', '', regex=True).str.strip()
+                found = True
+                break
+        if not found:
+             print(f"WARNING: Learning method column '{col}' NOT FOUND.")
+
 # Save to new file
 output_file = 'cleaned_data.xlsx'
 df.to_excel(output_file, index=False)
