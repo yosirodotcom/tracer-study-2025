@@ -427,6 +427,35 @@ if col_funding in df.columns:
 else:
     print(f"WARNING: Column '{col_funding}' not found.")
 
+# --- Mapping Employment Search Status ---
+print("\n--- Mapping Employment Search Status ---")
+col_search = "Apakah Anda aktif mencari pekerjaan dalam 4 minggu terakhir?"
+col_search_rev = "Apakah Anda aktif mencari pekerjaan dalam 4 minggu terakhir? rev"
+
+allowed_search_status = [
+    "Tidak",
+    "Tidak, tapi saya sedang menunggu hasil lamaran kerja",
+    "Ya, saya akan mulai bekerja dalam 2 minggu kedepan",
+    "Ya, tapi saya belum pasti akan bekerja dalam 2minggu kedepan"
+]
+
+if col_search in df.columns:
+    def map_search_status(val):
+        if pd.isna(val):
+             return "Lainnya"
+        s_val = str(val).strip()
+        if s_val in allowed_search_status:
+            return s_val
+        else:
+            return "Lainnya"
+
+    df[col_search_rev] = df[col_search].apply(map_search_status)
+    print(f"Created '{col_search_rev}'.")
+    print("Value Counts for new Search Status Column:")
+    print(df[col_search_rev].value_counts())
+else:
+    print(f"WARNING: Column '{col_search}' not found.")
+
 # --- Clean Learning Method Columns ---
 print("\n--- Cleaning Learning Method Columns ---")
 learning_cols = ['Perkuliahan', 'Demonstrasi', 'Partisipasi dalam proyek riset', 'Magang', 'Praktikum', 'Kerja Lapangan', 'Diskusi']
