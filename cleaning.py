@@ -129,6 +129,36 @@ cols_to_drop = [c for c in cols_to_remove if c in df.columns]
 df = df.drop(columns=cols_to_drop)
 print(f"Columns removed. Remaining columns: {len(df.columns)}")
 
+
+# --- Clean Active Job Search Column ---
+print("\n--- Processing Active Job Search Column ---")
+col_active_search = "Apakah Anda aktif mencari pekerjaan dalam 4 minggu terakhir?"
+col_active_search_rev = "Apakah Anda aktif mencari pekerjaan dalam 4 minggu terakhir? rev"
+
+valid_active_search_values = [
+    "Tidak", 
+    "Tidak, tapi saya sedang menunggu hasil lamaran kerja", 
+    "Ya, saya akan mulai bekerja dalam 2 minggu kedepan", 
+    "Ya, tapi saya belum pasti akan bekerja dalam 2minggu kedepan"
+]
+
+if col_active_search in df.columns:
+    def map_active_search(val):
+        if pd.isna(val):
+            return "Lainnya"
+        s_val = str(val).strip()
+        if s_val in valid_active_search_values:
+            return s_val
+        else:
+            return "Lainnya"
+
+    df[col_active_search_rev] = df[col_active_search].apply(map_active_search)
+    print(f"Created '{col_active_search_rev}'")
+    print("Value Counts:")
+    print(df[col_active_search_rev].value_counts())
+else:
+    print(f"WARNING: Column '{col_active_search}' not found.")
+
 # --- Status and Duration Analysis ---
 print("\n--- Processing Status and Duration ---")
 col_status = "Jelaskan status Anda saat ini?"
@@ -424,6 +454,68 @@ for col in learning_cols:
                 break
         if not found:
              print(f"WARNING: Learning method column '{col}' NOT FOUND.")
+
+
+# --- Final Column Selection ---
+print("\n--- Selecting Final Columns ---")
+final_columns = [
+    "ID",
+    "Tahun Lulus",
+    "Jurusan",
+    "diploma",
+    "prodi",
+    "Jelaskan status Anda saat ini?",
+    "Apakah anda telah mendapatkan pekerjaan <=6 bulan / termasuk bekerja sebelum lulus?",
+    "Dalam berapa bulan Anda mendapatkan pekerjaan? Tulis dengan angka (Contoh: 1, 1Tahun = 12 bulan) rev2",
+    "Berapa rata-rata pendapatan Anda per bulan?",
+    "Provinsi rev",
+    "Kota/Kabupate rev",
+    "Apa jenis Perusahaan/Instansi/Institusi tempat Anda bekerja sekarang? rev",
+    "Apaila berwiraswasta, apa posisi/jabatan Anda saat ini? (Status Wiraswasta)",
+    "Apa tingkat tempat kerja Anda? rev",
+    "Sumber biaya",
+    "Sumber dana dalam pembiayaan kuliah (bukan ketika studi lanjut) rev",
+    "Seberapa erat hubungan bidang studi dengan pekerjaan Anda?",
+    "Tingkat pendidikan apa yang paling tepat/sesuai untuk pekerjaan Anda saat ini?",
+    "Etika 1",
+    "Keahlian berdasarkan bidang ilmu 1",
+    "Bahasa Inggris 1",
+    "Penggunaan Teknologi Informasi 1",
+    "Komunikasi 1",
+    "Kerjasama Tim 1",
+    "Pengembangan 1",
+    "Etika 2",
+    "Keahlian berdasarkan bidang ilmu 2",
+    "Bahasa Inggris 2",
+    "Penggunaan Teknologi Informasi 2",
+    "Komunikasi 2",
+    "Kerjasama Tim 2",
+    "Pengembangan 2",
+    "Perkuliahan",
+    "Demonstrasi",
+    "Partisipasi dalam proyek riset",
+    "Magang",
+    "Praktikum",
+    "Kerja Lapangan",
+    "Diskusi",
+    "Kapan Anda mulai cari pekerjaan? (Mohon pekerjaan sambilan tidak dimasukkan)",
+    "Bagaimana Anda mencari pekerjaan tersebut? (jawaban bisa lebih dari satu",
+    "Berapa Perusahaan/Instansi/Institusi yang sudah Anda lamar (lewat surel atau email) sebelum Anda memperoleh pekerjaan pertama? rev",
+    "Berapa banyak Perusahaan/Instansi/Institusi yang merespon lamaran Anda? rev",
+    "Berapa banyak Perusahaann/Instansi/Institusi yang mengundang Anda untuk wawancara? rev",
+    "Apakah Anda aktif mencari pekerjaan dalam 4 minggu terakhir? rev",
+    "Jika menurut Anda pekerjaan saat ini tidak sesuai dengan pendidikan Anda, mengapa  mengambilnya? Jawaban bisa lebih dari satu"
+]
+
+# Verify columns exist before selecting
+missing_cols = [c for c in final_columns if c not in df.columns]
+if missing_cols:
+    print(f"WARNING: The following requested columns are MISSING: {missing_cols}")
+    print("Proceeding with available columns only.")
+    final_columns = [c for c in final_columns if c in df.columns]
+
+df = df[final_columns]
+print(f"Selected {len(df.columns)} columns.")
 
 # Save to new file
 output_file = 'cleaned_data.xlsx'
