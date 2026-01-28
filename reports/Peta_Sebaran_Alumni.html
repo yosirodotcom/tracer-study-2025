@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_db3a96ce1a0bc1f26239753325af3fa4 {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
+        
+</head>
+<body>
+    
+    
+            <div class="folium-map" id="map_db3a96ce1a0bc1f26239753325af3fa4" ></div>
+        
+</body>
+<script>
+    
+    
+            var map_db3a96ce1a0bc1f26239753325af3fa4 = L.map(
+                "map_db3a96ce1a0bc1f26239753325af3fa4",
+                {
+                    center: [-2.5, 118.0],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 5,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_5681490094cbb7a22e3692f7bd716334 = L.tileLayer(
+                "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+                {
+  "minZoom": 0,
+  "maxZoom": 20,
+  "maxNativeZoom": 20,
+  "noWrap": false,
+  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors \u0026copy; \u003ca href=\"https://carto.com/attributions\"\u003eCARTO\u003c/a\u003e",
+  "subdomains": "abcd",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_5681490094cbb7a22e3692f7bd716334.addTo(map_db3a96ce1a0bc1f26239753325af3fa4);
+        
+    
+            var circle_marker_1981059a225133123f913e82b9e59721 = L.circleMarker(
+                [-0.2787, 111.4753],
+                {"bubblingMouseEvents": true, "color": "#00008b", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#00008b", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 106.2, "stroke": true, "weight": 3}
+            ).addTo(map_db3a96ce1a0bc1f26239753325af3fa4);
+        
+    
+        var popup_2f115df1f820c2ab9d7768347b7768ed = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_e1f243630eb5e493b0bee84c61c605c3 = $(`<div id="html_e1f243630eb5e493b0bee84c61c605c3" style="width: 100.0%; height: 100.0%;"><b>Kalimantan Barat</b><br>Jumlah Alumni: 506</div>`)[0];
+                popup_2f115df1f820c2ab9d7768347b7768ed.setContent(html_e1f243630eb5e493b0bee84c61c605c3);
+            
+        
+
+        circle_marker_1981059a225133123f913e82b9e59721.bindPopup(popup_2f115df1f820c2ab9d7768347b7768ed)
+        ;
+
+        
+    
+    
+            var marker_d969c5a900ae37c9e1ab49a1d304876d = L.marker(
+                [-0.2787, 111.4753],
+                {
+}
+            ).addTo(map_db3a96ce1a0bc1f26239753325af3fa4);
+        
+    
+            var div_icon_da5437a8e9519174e6e408f18c4110fc = L.divIcon({
+  "html": "\u003cdiv style=\"font-family: courier new; color: black; font-weight: bold\"\u003e506\u003c/div\u003e",
+  "className": "empty",
+});
+        
+    
+                marker_d969c5a900ae37c9e1ab49a1d304876d.setIcon(div_icon_da5437a8e9519174e6e408f18c4110fc);
+            
+    
+            var circle_marker_1df9ad53253e1510cd03e18eddc8e48e = L.circleMarker(
+                [-6.2088, 106.8456],
+                {"bubblingMouseEvents": true, "color": "#84c9e9", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#84c9e9", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7.6, "stroke": true, "weight": 3}
+            ).addTo(map_db3a96ce1a0bc1f26239753325af3fa4);
+        
+    
+        var popup_fb1966391fce5194a194121756161810 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_66cc91dc2c57464d0c9c714c71084276 = $(`<div id="html_66cc91dc2c57464d0c9c714c71084276" style="width: 100.0%; height: 100.0%;"><b>DKI Jakarta</b><br>Jumlah Alumni: 13</div>`)[0];
+                popup_fb1966391fce5194a194121756161810.setContent(html_66cc91dc2c57464d0c9c714c71084276);
+            
+        
+
+        circle_marker_1df9ad53253e1510cd03e18eddc8e48e.bindPopup(popup_fb1966391fce5194a194121756161810)
+        ;
+
+        
+    
+    
+            var marker_ba7eaf0367c1408f9d4865588825c030 = L.marker(
+                [-6.2088, 106.8456],
+                {
+}
+            ).addTo(map_db3a96ce1a0bc1f26239753325af3fa4);
+        
+    
+            var div_icon_ee2f61a62e6273002ac9da8173a12055 = L.divIcon({
+  "html": "\u003cdiv style=\"font-family: courier new; color: black; font-weight: bold\"\u003e13\u003c/div\u003e",
+  "className": "empty",
+});
+        
+    
+                marker_ba7eaf0367c1408f9d4865588825c030.setIcon(div_icon_ee2f61a62e6273002ac9da8173a12055);
+            
+    
+            var circle_marker_40921da9e42772af7618fd0046f2bf84 = L.circleMarker(
+                [-1.6815, 113.3824],
+                {"bubblingMouseEvents": true, "color": "#86ccea", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#86ccea", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6.0, "stroke": true, "weight": 3}
+            ).addTo(map_db3a96ce1a0bc1f26239753325af3fa4);
+        
+    
+        var popup_cd149809bd32d76a82aa2df8adbf9f41 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_c88a441188c9fe327287a5c997ab1be6 = $(`<div id="html_c88a441188c9fe327287a5c997ab1be6" style="width: 100.0%; height: 100.0%;"><b>Kalimantan Tengah</b><br>Jumlah Alumni: 5</div>`)[0];
+                popup_cd149809bd32d76a82aa2df8adbf9f41.setContent(html_c88a441188c9fe327287a5c997ab1be6);
+            
+        
+
+        circle_marker_40921da9e42772af7618fd0046f2bf84.bindPopup(popup_cd149809bd32d76a82aa2df8adbf9f41)
+        ;
+
+        
+    
+    
+            var circle_marker_71055375e320f3a486ae857a5015c84d = L.circleMarker(
+                [-6.9175, 107.6191],
+                {"bubblingMouseEvents": true, "color": "#86ccea", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#86ccea", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 6.0, "stroke": true, "weight": 3}
+            ).addTo(map_db3a96ce1a0bc1f26239753325af3fa4);
+        
+    
+        var popup_935edb9b1e3d7d9c7070aa4aaafb68e0 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_e7d807ae9d3c7f23a5db8d72438e58a7 = $(`<div id="html_e7d807ae9d3c7f23a5db8d72438e58a7" style="width: 100.0%; height: 100.0%;"><b>Jawa Barat</b><br>Jumlah Alumni: 5</div>`)[0];
+                popup_935edb9b1e3d7d9c7070aa4aaafb68e0.setContent(html_e7d807ae9d3c7f23a5db8d72438e58a7);
+            
+        
+
+        circle_marker_71055375e320f3a486ae857a5015c84d.bindPopup(popup_935edb9b1e3d7d9c7070aa4aaafb68e0)
+        ;
+
+        
+    
+    
+            var circle_marker_50a228036915530f272e1195d08de62b = L.circleMarker(
+                [-7.7956, 110.3695],
+                {"bubblingMouseEvents": true, "color": "#86cdeb", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#86cdeb", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 5.8, "stroke": true, "weight": 3}
+            ).addTo(map_db3a96ce1a0bc1f26239753325af3fa4);
+        
+    
+        var popup_0be7ebd5973cfa35b0be42ac134a83fe = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_275221d9f7f99924db2a692c9da2eac3 = $(`<div id="html_275221d9f7f99924db2a692c9da2eac3" style="width: 100.0%; height: 100.0%;"><b>Daerah Istimewa Yogyakarta</b><br>Jumlah Alumni: 4</div>`)[0];
+                popup_0be7ebd5973cfa35b0be42ac134a83fe.setContent(html_275221d9f7f99924db2a692c9da2eac3);
+            
+        
+
+        circle_marker_50a228036915530f272e1195d08de62b.bindPopup(popup_0be7ebd5973cfa35b0be42ac134a83fe)
+        ;
+
+        
+    
+    
+            var circle_marker_ed0093533fc79e89cc1f354c633e1665 = L.circleMarker(
+                [-6.4058, 106.064],
+                {"bubblingMouseEvents": true, "color": "#86cdeb", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#86cdeb", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 5.6, "stroke": true, "weight": 3}
+            ).addTo(map_db3a96ce1a0bc1f26239753325af3fa4);
+        
+    
+        var popup_b5f66aabfd1686ed19322edaecaf6fe1 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_3b53d5a7e825dcbdcb1d71d0c8d5ff8d = $(`<div id="html_3b53d5a7e825dcbdcb1d71d0c8d5ff8d" style="width: 100.0%; height: 100.0%;"><b>Banten</b><br>Jumlah Alumni: 3</div>`)[0];
+                popup_b5f66aabfd1686ed19322edaecaf6fe1.setContent(html_3b53d5a7e825dcbdcb1d71d0c8d5ff8d);
+            
+        
+
+        circle_marker_ed0093533fc79e89cc1f354c633e1665.bindPopup(popup_b5f66aabfd1686ed19322edaecaf6fe1)
+        ;
+
+        
+    
+    
+            var circle_marker_4cd9b8e9abde44428df156667fa94cdc = L.circleMarker(
+                [-3.0926, 115.2838],
+                {"bubblingMouseEvents": true, "color": "#87ceeb", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#87ceeb", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 5.4, "stroke": true, "weight": 3}
+            ).addTo(map_db3a96ce1a0bc1f26239753325af3fa4);
+        
+    
+        var popup_29ee26dee8070db3226701c69d0bc46e = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_c53373f92f4fb3693c13fe2ce87e529f = $(`<div id="html_c53373f92f4fb3693c13fe2ce87e529f" style="width: 100.0%; height: 100.0%;"><b>Kalimantan Selatan</b><br>Jumlah Alumni: 2</div>`)[0];
+                popup_29ee26dee8070db3226701c69d0bc46e.setContent(html_c53373f92f4fb3693c13fe2ce87e529f);
+            
+        
+
+        circle_marker_4cd9b8e9abde44428df156667fa94cdc.bindPopup(popup_29ee26dee8070db3226701c69d0bc46e)
+        ;
+
+        
+    
+    
+            var circle_marker_2f0bfa00e1b1a199350e15ef22105035 = L.circleMarker(
+                [3.9456, 108.1428],
+                {"bubblingMouseEvents": true, "color": "#87ceeb", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#87ceeb", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 5.4, "stroke": true, "weight": 3}
+            ).addTo(map_db3a96ce1a0bc1f26239753325af3fa4);
+        
+    
+        var popup_3c1bd0025090ac925120937d187c3e98 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_a9f3484a6532466a86ce009d11d883f8 = $(`<div id="html_a9f3484a6532466a86ce009d11d883f8" style="width: 100.0%; height: 100.0%;"><b>Kepulauan Riau</b><br>Jumlah Alumni: 2</div>`)[0];
+                popup_3c1bd0025090ac925120937d187c3e98.setContent(html_a9f3484a6532466a86ce009d11d883f8);
+            
+        
+
+        circle_marker_2f0bfa00e1b1a199350e15ef22105035.bindPopup(popup_3c1bd0025090ac925120937d187c3e98)
+        ;
+
+        
+    
+    
+            var circle_marker_3caf300cf5ea6e8c1729536ff1ce5364 = L.circleMarker(
+                [-0.7399, 100.8],
+                {"bubblingMouseEvents": true, "color": "#87ceeb", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#87ceeb", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 5.2, "stroke": true, "weight": 3}
+            ).addTo(map_db3a96ce1a0bc1f26239753325af3fa4);
+        
+    
+        var popup_9eed3ebae08e18bcd1334d9058b5f94e = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_ea37c532e65de80a9e7e314920a1f0c9 = $(`<div id="html_ea37c532e65de80a9e7e314920a1f0c9" style="width: 100.0%; height: 100.0%;"><b>Sumatera Barat</b><br>Jumlah Alumni: 1</div>`)[0];
+                popup_9eed3ebae08e18bcd1334d9058b5f94e.setContent(html_ea37c532e65de80a9e7e314920a1f0c9);
+            
+        
+
+        circle_marker_3caf300cf5ea6e8c1729536ff1ce5364.bindPopup(popup_9eed3ebae08e18bcd1334d9058b5f94e)
+        ;
+
+        
+    
+    
+            var circle_marker_69641a4a495c0559a3dd457d599f7172 = L.circleMarker(
+                [-1.43, 121.4456],
+                {"bubblingMouseEvents": true, "color": "#87ceeb", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#87ceeb", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 5.2, "stroke": true, "weight": 3}
+            ).addTo(map_db3a96ce1a0bc1f26239753325af3fa4);
+        
+    
+        var popup_1acc38819f542f1b4786b6ea4e2d2a0b = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_3a60acc0acbbb1c6c59cff2d09345535 = $(`<div id="html_3a60acc0acbbb1c6c59cff2d09345535" style="width: 100.0%; height: 100.0%;"><b>Sulawesi Tengah</b><br>Jumlah Alumni: 1</div>`)[0];
+                popup_1acc38819f542f1b4786b6ea4e2d2a0b.setContent(html_3a60acc0acbbb1c6c59cff2d09345535);
+            
+        
+
+        circle_marker_69641a4a495c0559a3dd457d599f7172.bindPopup(popup_1acc38819f542f1b4786b6ea4e2d2a0b)
+        ;
+
+        
+    
+    
+            var circle_marker_8cf2c0d93aa13b596ae0c8f81fd517ed = L.circleMarker(
+                [-0.947, 100.417],
+                {"bubblingMouseEvents": true, "color": "#87ceeb", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#87ceeb", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 5.2, "stroke": true, "weight": 3}
+            ).addTo(map_db3a96ce1a0bc1f26239753325af3fa4);
+        
+    
+        var popup_b1fce5314a2b7d57b4bce6e495a961b6 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_e688008582e19687d984dcb1b5807df5 = $(`<div id="html_e688008582e19687d984dcb1b5807df5" style="width: 100.0%; height: 100.0%;"><b>Sumatera Tengah</b><br>Jumlah Alumni: 1</div>`)[0];
+                popup_b1fce5314a2b7d57b4bce6e495a961b6.setContent(html_e688008582e19687d984dcb1b5807df5);
+            
+        
+
+        circle_marker_8cf2c0d93aa13b596ae0c8f81fd517ed.bindPopup(popup_b1fce5314a2b7d57b4bce6e495a961b6)
+        ;
+
+        
+    
+    
+            var circle_marker_afffce2de29e41a73959a99a70b80a04 = L.circleMarker(
+                [4.6951, 96.7494],
+                {"bubblingMouseEvents": true, "color": "#87ceeb", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#87ceeb", "fillOpacity": 0.7, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 5.2, "stroke": true, "weight": 3}
+            ).addTo(map_db3a96ce1a0bc1f26239753325af3fa4);
+        
+    
+        var popup_cb38e0b5ea3aa3f87977933ac12c7ff7 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_e281e4469f95453796ae7e2353c71fa0 = $(`<div id="html_e281e4469f95453796ae7e2353c71fa0" style="width: 100.0%; height: 100.0%;"><b>Aceh</b><br>Jumlah Alumni: 1</div>`)[0];
+                popup_cb38e0b5ea3aa3f87977933ac12c7ff7.setContent(html_e281e4469f95453796ae7e2353c71fa0);
+            
+        
+
+        circle_marker_afffce2de29e41a73959a99a70b80a04.bindPopup(popup_cb38e0b5ea3aa3f87977933ac12c7ff7)
+        ;
+
+        
+    
+</script>
+</html>
