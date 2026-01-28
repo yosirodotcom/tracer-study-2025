@@ -2,7 +2,19 @@ import pandas as pd
 import numpy as np
 import re
 
-df = pd.read_excel('data.xlsx')
+import os
+
+# Define paths
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_RAW = os.path.join(BASE_DIR, 'data', 'raw', 'data.xlsx')
+DATA_PROCESSED_DIR = os.path.join(BASE_DIR, 'data', 'processed')
+REPORTS_DIR = os.path.join(BASE_DIR, 'reports')
+
+# Ensure output directories exist
+os.makedirs(DATA_PROCESSED_DIR, exist_ok=True)
+os.makedirs(REPORTS_DIR, exist_ok=True)
+
+df = pd.read_excel(DATA_RAW)
 initial_rows = len(df)
 print(f"Initial Row Count: {initial_rows}")
 
@@ -93,7 +105,8 @@ rows_after = len(df)
 print(f"Rows after fixing inconsistent data: {rows_after} (Should be same as before)")
 
 
-with open('cleaning_report.txt', 'w') as f:
+report_path = os.path.join(REPORTS_DIR, 'cleaning_report.txt')
+with open(report_path, 'w') as f:
     f.write(f"Rows before removing inconsistent data: {rows_before}\n")
     f.write(f"Inconsistent rows removed: {inconsistent_count}\n")
     f.write(f"Rows after removing inconsistent data: {rows_after}\n")
@@ -107,8 +120,9 @@ if 'Jurusan' in df.columns:
     print(group_table)
     
     # Optional: Save group table
-    group_table.to_excel('group_table.xlsx', index=False)
-    print("Group table saved to 'group_table.xlsx'")
+    group_table_path = os.path.join(DATA_PROCESSED_DIR, 'group_table.xlsx')
+    group_table.to_excel(group_table_path, index=False)
+    print(f"Group table saved to '{group_table_path}'")
 else:
     print("CRITICAL: 'Jurusan' column still NOT FOUND.")
     # Debug print to help identify the issue if it persists
@@ -186,8 +200,10 @@ if col_status in df.columns:
     print(status_counts)
     
     # Save Status Table
-    status_counts.to_excel('status_table.xlsx', index=False)
-    print("Status table saved to 'status_table.xlsx'")
+    # Save Status Table
+    status_table_path = os.path.join(DATA_PROCESSED_DIR, 'status_table.xlsx')
+    status_counts.to_excel(status_table_path, index=False)
+    print(f"Status table saved to '{status_table_path}'")
 else:
     print(f"WARNING: Status column '{col_status}' not found.")
 
@@ -547,7 +563,8 @@ df = df[final_columns]
 print(f"Selected {len(df.columns)} columns.")
 
 # Save to new file
-output_file = 'cleaned_data.xlsx'
+# Save to new file
+output_file = os.path.join(DATA_PROCESSED_DIR, 'cleaned_data.xlsx')
 df.to_excel(output_file, index=False)
 print(f"Cleaned data saved to {output_file}")
 
@@ -556,7 +573,7 @@ print(f"Initial Rows: {initial_rows}")
 print(f"Final Rows:   {len(df)}")
 print(f"Rows Removed: {initial_rows - len(df)}")
 
-with open('cleaning_report.txt', 'w') as f:
+with open(report_path, 'w') as f:
     f.write(f"Initial Rows: {initial_rows}\n")
     f.write(f"Final Rows: {len(df)}\n")
     f.write(f"Total Rows Removed: {initial_rows - len(df)}\n")

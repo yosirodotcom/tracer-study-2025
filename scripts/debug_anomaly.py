@@ -1,7 +1,12 @@
 import pandas as pd
 
 try:
-    df = pd.read_excel('cleaned_data.xlsx')
+    import os
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    DATA_RAW = os.path.join(BASE_DIR, 'data', 'raw', 'data.xlsx')
+    DATA_CLEANED = os.path.join(BASE_DIR, 'data', 'processed', 'cleaned_data.xlsx')
+
+    df = pd.read_excel(DATA_CLEANED)
     col_rev2 = "Dalam berapa bulan Anda mendapatkan pekerjaan? Tulis dengan angka (Contoh: 1, 1Tahun = 12 bulan) rev2"
     
     if col_rev2 in df.columns:
@@ -20,7 +25,7 @@ try:
             # The original column name is in cleaning.py
             
             # Let's check original data.xlsx for this 24228
-            df_orig = pd.read_excel('data.xlsx')
+            df_orig = pd.read_excel(DATA_RAW)
             col_orig = "Dalam berapa bulan Anda mendapatkan pekerjaan? Tulis dengan angka (Contoh: 1, 1Tahun = 12 bulan)"
             
             # Find row with 24228 in original or something similar
@@ -41,7 +46,7 @@ try:
         # Check if file was updated recently?
         import os
         import time
-        mtime = os.path.getmtime('cleaned_data.xlsx')
+        mtime = os.path.getmtime(DATA_CLEANED)
         print(f"\nFile modified: {time.ctime(mtime)}")
 
     else:

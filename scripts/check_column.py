@@ -1,7 +1,10 @@
 import pandas as pd
 
 try:
-    df = pd.read_excel('data.xlsx')
+    import os
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    DATA_PATH = os.path.join(BASE_DIR, 'data', 'raw', 'data.xlsx')
+    df = pd.read_excel(DATA_PATH)
     col = "Apa jenis Perusahaan/Instansi/Institusi tempat Anda bekerja sekarang?"
     
     if col in df.columns:

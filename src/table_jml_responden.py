@@ -2,7 +2,7 @@ import pandas as pd
 
 def create_distribution_campus_loc_tahun(df):
     """
-    Creates a distribution table of respondents based on Campus Location (derived from prodi) and Tahun Lulus.
+    Creates a distribution table of respondents based on Lokasi Kampus (derived from prodi) and Tahun Lulus.
     
     Logic:
     - If 'prodi' contains "Kapuas Hulu" -> "Kapuas Hulu"
@@ -31,15 +31,15 @@ def create_distribution_campus_loc_tahun(df):
     def get_location(val):
         s_val = str(val)
         if 'Kapuas Hulu' in s_val:
-            return 'Kapuas Hulu'
+            return 'PDD Kapuas Hulu'
         if 'Sanggau' in s_val:
-             return 'Sanggau'
+             return 'PSDKU Sanggau'
         if 'Sukamara' in s_val:
-            return 'Sukamara'
+            return 'PSDKU Sukamara'
         return 'Kampus Polnep'
 
     # Create a temporary column for location to group by
-    temp_loc_col = 'Campus Location'
+    temp_loc_col = 'Lokasi Kampus'
     df = df.copy() # Avoid SettingWithCopyWarning on original df if passed directly
     df[temp_loc_col] = df[column_to_check].apply(get_location)
     
@@ -193,8 +193,8 @@ def get_horizontal_bar_chart_base64(df, title):
     bars = ax.barh(labels, values, color=colors, edgecolor='none')
     
     # 4. Styling
-    ax.set_title(f"Chart: {title}", fontsize=14, fontweight='bold', pad=20, color='#2c3e50')
-    ax.set_xlabel("Number of Respondents", fontsize=10, color='#555')
+    ax.set_title(f"Grafik: {title}", fontsize=14, fontweight='bold', pad=20, color='#2c3e50')
+    ax.set_xlabel("Jumlah Responden", fontsize=10, color='#555')
     
     # Remove top and right spines
     ax.spines['top'].set_visible(False)
@@ -235,7 +235,7 @@ def generate_html_report(data_dict, output_file='report_tables.html'):
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Tracer Study Report</title>
+        <title>Laporan Tracer Study</title>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
         <!-- Load html2canvas for taking screenshots of tables -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -396,7 +396,7 @@ def generate_html_report(data_dict, output_file='report_tables.html'):
     </head>
     <body>
         <div class="container">
-            <h1>Tracer Study Respondent Report</h1>
+            <h1>Laporan Responden Tracer Study</h1>
     """
     
     section_id = 0
@@ -410,10 +410,10 @@ def generate_html_report(data_dict, output_file='report_tables.html'):
         
         # --- Table Section ---
         html_content += f'<div class="btn-group">'
-        html_content += f'<button class="btn" onclick="saveTable(\'{table_id}\', \'{title}_table\')">Save Table</button>'
+        html_content += f'<button class="btn" onclick="saveTable(\'{table_id}\', \'{title}_table\')">Simpan Tabel</button>'
         html_content += '</div>'
         
-        # reset_index to ensure the index part (like Campus Location) is a proper column
+        # reset_index to ensure the index part (like Lokasi Kampus) is a proper column
         if df.index.name:
              df_to_html = df.reset_index()
         else:
@@ -437,7 +437,7 @@ def generate_html_report(data_dict, output_file='report_tables.html'):
             html_content += f"""
             <div class="chart-container">
                 <div class="btn-group" style="text-align: right;">
-                    <a href="data:image/png;base64,{chart_base64}" download="{title}_chart.png" class="btn btn-secondary">Save Chart (High Res)</a>
+                    <a href="data:image/png;base64,{chart_base64}" download="{title}_chart.png" class="btn btn-secondary">Simpan Grafik (High Res)</a>
                 </div>
                 <img src="data:image/png;base64,{chart_base64}" alt="Chart for {title}" class="chart-img">
             </div>
@@ -498,10 +498,17 @@ if __name__ == "__main__":
     import os
     print("--- Running table_jml_responden.py ---")
     
-    file_path = 'cleaned_data.xlsx'
+    # Define paths
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    DATA_CLEANED = os.path.join(BASE_DIR, 'data', 'processed', 'cleaned_data.xlsx')
+    REPORTS_DIR = os.path.join(BASE_DIR, 'reports')
+    REPORT_OUTPUT = os.path.join(REPORTS_DIR, 'report_tables.html')
+
+    file_path = DATA_CLEANED
     if not os.path.exists(file_path):
-        print("cleaned_data.xlsx not found, trying data.xlsx")
-        file_path = 'data.xlsx'
+        print(f"{file_path} not found, trying data.xlsx")
+        DATA_RAW = os.path.join(BASE_DIR, 'data', 'raw', 'data.xlsx')
+        file_path = DATA_RAW
         
     try:
         print(f"Loading data from {file_path}...")
@@ -513,13 +520,13 @@ if __name__ == "__main__":
         df_prodi = create_distribution_prodi_tahun(df_load)
         
         # Print to console (using our styled printer)
-        print_styled_table(df_campus, "Table 1: Campus Location vs Tahun Lulus")
+        print_styled_table(df_campus, "Table 1: Lokasi Kampus vs Tahun Lulus")
         print_styled_table(df_jurusan, "Table 2: Jurusan vs Tahun Lulus")
         print_styled_table(df_prodi, "Table 3: Program Studi vs Tahun Lulus")
         
         # Generate Charts
         print("\nGenerating Charts...")
-        chart_campus = get_horizontal_bar_chart_base64(df_campus, "Campus Location")
+        chart_campus = get_horizontal_bar_chart_base64(df_campus, "Lokasi Kampus")
         chart_jurusan = get_horizontal_bar_chart_base64(df_jurusan, "Jurusan")
         chart_prodi = get_horizontal_bar_chart_base64(df_prodi, "Program Studi")
 
@@ -527,14 +534,13 @@ if __name__ == "__main__":
         print("\nGenerating HTML report...")
         # Passing tuple (dataframe, chart_image)
         dfs_to_report = {
-            "Distribution by Campus Location": (df_campus, chart_campus),
-            "Distribution by Jurusan": (df_jurusan, chart_jurusan),
-            "Distribution by Program Studi": (df_prodi, chart_prodi)
+            "Distribusi Berdasarkan Lokasi Kampus": (df_campus, chart_campus),
+            "Distribusi Berdasarkan Jurusan": (df_jurusan, chart_jurusan),
+            "Distribusi Berdasarkan Program Studi": (df_prodi, chart_prodi)
         }
-        generate_html_report(dfs_to_report)
+        generate_html_report(dfs_to_report, output_file=REPORT_OUTPUT)
         
     except Exception as e:
         print(f"Error executing main: {e}")
         import traceback
         traceback.print_exc()
-
