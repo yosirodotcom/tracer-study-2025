@@ -1,3 +1,15 @@
+# Auto-install missing dependencies
+import subprocess, sys, importlib
+
+def _ensure_pkg(pkg):
+    try:
+        importlib.import_module(pkg)
+    except ImportError:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", pkg])
+
+for _pkg in ["pandas", "numpy", "folium", "geopandas", "matplotlib", "shapely", "customtkinter"]:
+    _ensure_pkg(_pkg)
+
 import pandas as pd
 import table_jml_responden as tr
 import os

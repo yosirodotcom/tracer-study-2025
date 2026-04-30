@@ -1,8 +1,21 @@
+# Auto-install missing dependencies
+import subprocess, sys, importlib
+
+def _ensure_pkg(pkg):
+    try:
+        importlib.import_module(pkg)
+    except ImportError:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", pkg])
+
+for _pkg in ["pandas", "numpy", "folium", "geopandas", "matplotlib", "shapely", "customtkinter"]:
+    _ensure_pkg(_pkg)
+
 import pandas as pd
 import numpy as np
 import io
 import time
 import os
+
 
 try:
     import folium
@@ -567,7 +580,10 @@ def create_distribution_masa_tunggu_status(df):
     df_analysis = df[[col_status, col_masa_tunggu]].copy()
     df_analysis.columns = ['Status Pekerjaan', 'Masa_Tunggu_Bulan']
 
-    # 2. Filter Data Valid
+    # 2. Filter Data Valid (Hanya yang bekerja/wiraswasta)
+    working_status = ['Bekerja (Full time/Part time)', 'Wiraswasta']
+    df_analysis = df_analysis[df_analysis['Status Pekerjaan'].isin(working_status)]
+    
     df_analysis = df_analysis.dropna(subset=['Masa_Tunggu_Bulan'])
     df_analysis['Masa_Tunggu_Bulan'] = pd.to_numeric(df_analysis['Masa_Tunggu_Bulan'], errors='coerce')
 
@@ -614,14 +630,14 @@ def create_distribution_waktu_tunggu_jurusan(df):
         print(f"Warning: Column '{col_masa_tunggu}' not found.")
         return pd.DataFrame()
 
-    # 2. Filter: Hanya ambil responden yang mengisi masa tunggu DAN statusnya Bekerja
+    # 2. Filter: Hanya ambil responden yang mengisi masa tunggu DAN statusnya Bekerja/Wiraswasta
     col_status = 'Jelaskan status Anda saat ini?'
-    target_status = 'Bekerja (Full time/Part time)'
+    working_status = ['Bekerja (Full time/Part time)', 'Wiraswasta']
     
     df_filtered = df.dropna(subset=[col_masa_tunggu]).copy()
     
     if col_status in df_filtered.columns:
-        df_filtered = df_filtered[df_filtered[col_status] == target_status]
+        df_filtered = df_filtered[df_filtered[col_status].isin(working_status)]
     else:
         print(f"Warning: Column '{col_status}' not found. Cannot filter by status.")
         return pd.DataFrame()
@@ -835,6 +851,286 @@ def create_serapan_prodi_per_jurusan(df):
         df_jurusan = df_jurusan[final_cols_order]
         
         results[jurusan] = df_jurusan
+        
+    return results
+
+def create_masa_tunggu_prodi_per_jurusan(df):
+    """
+    Creates a dictionary of tables, one per Jurusan.
+    Each table shows [Prodi] vs Kategori Masa Tunggu.
+    Returns: dict { "Jurusan Name": pd.DataFrame }
+    """
+    col_jurusan = 'Jurusan'
+    col_prodi = 'prodi'
+    if col_prodi not in df.columns and 'Program Studi' in df.columns:
+        col_prodi = 'Program Studi'
+        
+    col_masa_tunggu = 'Dalam berapa bulan Anda mendapatkan pekerjaan? Tulis dengan angka (Contoh: 1, 1Tahun = 12 bulan) rev2'
+    
+    if col_jurusan not in df.columns or col_prodi not in df.columns or col_masa_tunggu not in df.columns:
+        return {}
+
+    # 1. Filter and Prepare
+    col_status = 'Jelaskan status Anda saat ini?'
+    working_status = ['Bekerja (Full time/Part time)', 'Wiraswasta']
+    
+    if col_status not in df.columns:
+        return {}
+        
+    # Filter only working/wiraswasta
+    df_filtered = df[df[col_status].isin(working_status)].copy()
+    
+    # Filter only those who filled in the Masa Tunggu column
+    df_filtered = df_filtered.dropna(subset=[col_masa_tunggu])
+    
+    df_analysis = df_filtered[[col_jurusan, col_prodi, col_masa_tunggu]].copy()
+    df_analysis['Masa_Tunggu_Bulan'] = pd.to_numeric(df_analysis[col_masa_tunggu], errors='coerce')
+    
+    def kategorisasi_masa_tunggu(bulan):
+        if pd.isna(bulan): return 'Unknown'
+        if bulan < 3: return 'Kurang dari 3 Bulan'
+        elif bulan <= 6: return '3 - 6 Bulan'
+        elif bulan <= 12: return '6 - 12 Bulan'
+        else: return 'Lebih dari 12 Bulan'
+
+    df_analysis['Kategori_Masa_Tunggu'] = df_analysis['Masa_Tunggu_Bulan'].apply(kategorisasi_masa_tunggu)
+
+    # 2. Create Crosstab
+    ct = pd.crosstab(
+        [df_analysis[col_jurusan], df_analysis[col_prodi]],
+        df_analysis['Kategori_Masa_Tunggu']
+    )
+    
+    # Sort columns logically
+    urutan_kolom = ['Kurang dari 3 Bulan', '3 - 6 Bulan', '6 - 12 Bulan', 'Lebih dari 12 Bulan']
+    sorted_cols = [c for c in urutan_kolom if c in ct.columns]
+    
+    # Get unique Jurusans
+    unique_jurusans = ct.index.get_level_values(0).unique()
+    
+    results = {}
+    for jurusan in unique_jurusans:
+        try:
+            # sub_df index is Prodi
+            sub_df = ct.loc[jurusan].copy()
+        except KeyError:
+            continue
+            
+        # Ensure all columns exist for consistency
+        for col in sorted_cols:
+            if col not in sub_df.columns:
+                sub_df[col] = 0
+        
+        # Reorder columns
+        sub_df = sub_df[sorted_cols]
+        
+        # Calculate Total per row
+        sub_df['Total'] = sub_df.sum(axis=1)
+        
+        # Calculate Grand Total for this Jurusan
+        jurusan_total_row = sub_df.sum(axis=0)
+        jurusan_grand_total = jurusan_total_row['Total']
+        
+        # Prepare Rows
+        final_rows = []
+        
+        # Add Prodi Rows
+        for prodi, row_data in sub_df.iterrows():
+            row_dict = {'Program Studi': prodi}
+            for col in sorted_cols + ['Total']:
+                row_dict[col] = row_data[col]
+            
+            # Percentage based on Jurusan Total
+            if jurusan_grand_total > 0:
+                pct = (row_data['Total'] / jurusan_grand_total) * 100
+                row_dict['Persentase'] = f"{pct:.2f}%"
+            else:
+                row_dict['Persentase'] = "0.00%"
+                
+            final_rows.append(row_dict)
+            
+        # Add Total Row
+        total_dict = {'Program Studi': f'Total {jurusan}'}
+        for col in sorted_cols + ['Total']:
+            total_dict[col] = jurusan_total_row[col]
+        
+        total_dict['Persentase'] = "100.00%"
+        final_rows.append(total_dict)
+        
+        # Create DataFrame
+        df_jurusan = pd.DataFrame(final_rows)
+        # Reorder columns
+        final_cols_order = ['Program Studi'] + sorted_cols + ['Total', 'Persentase']
+        df_jurusan = df_jurusan[final_cols_order]
+        
+        results[f"Masa Tunggu - {jurusan}"] = df_jurusan
+        
+    return results
+
+def create_waktu_tunggu_prodi_per_jurusan(df):
+    """
+    Creates a dictionary of tables, one per Jurusan.
+    Each table shows [Prodi] vs Average Waiting Time analysis.
+    Returns: dict { "Jurusan Name": pd.DataFrame }
+    """
+    col_jurusan = 'Jurusan'
+    col_prodi = 'prodi'
+    if col_prodi not in df.columns and 'Program Studi' in df.columns:
+        col_prodi = 'Program Studi'
+        
+    col_masa_tunggu = 'Dalam berapa bulan Anda mendapatkan pekerjaan? Tulis dengan angka (Contoh: 1, 1Tahun = 12 bulan) rev2'
+    col_status = 'Jelaskan status Anda saat ini?'
+    working_status = ['Bekerja (Full time/Part time)', 'Wiraswasta']
+    
+    if col_jurusan not in df.columns or col_prodi not in df.columns or col_masa_tunggu not in df.columns or col_status not in df.columns:
+        return {}
+
+    # 1. Filter Data
+    df_filtered = df.dropna(subset=[col_masa_tunggu]).copy()
+    df_filtered = df_filtered[df_filtered[col_status].isin(working_status)]
+    
+    if df_filtered.empty:
+        return {}
+
+    # 2. Prepare numeric data
+    df_filtered['Masa_Tunggu_Bulan'] = pd.to_numeric(df_filtered[col_masa_tunggu], errors='coerce')
+    df_filtered['Is_Less_6_Months'] = df_filtered['Masa_Tunggu_Bulan'].apply(lambda x: 1 if x <= 6 else 0)
+
+    # 3. Aggregate by [Jurusan, Prodi]
+    analisis = df_filtered.groupby([col_jurusan, col_prodi]).agg(
+        Total_Responden=('Masa_Tunggu_Bulan', 'count'),
+        Jumlah_Kurang_6_Bulan=('Is_Less_6_Months', 'sum'),
+        Rata_rata_Waktu_Tunggu=('Masa_Tunggu_Bulan', 'mean')
+    ).reset_index()
+
+    # 4. Split by Jurusan
+    unique_jurusans = analisis[col_jurusan].unique()
+    results = {}
+
+    for jurusan in unique_jurusans:
+        sub_df = analisis[analisis[col_jurusan] == jurusan].copy()
+        
+        # Calculate Percentage
+        sub_df['Persentase (<= 6 Bulan) (%)'] = (sub_df['Jumlah_Kurang_6_Bulan'] / sub_df['Total_Responden'] * 100)
+        
+        # Rounding
+        sub_df['Rata_rata_Waktu_Tunggu'] = sub_df['Rata_rata_Waktu_Tunggu'].round(1)
+        
+        # Sort by Percentage Desc
+        sub_df = sub_df.sort_values(by='Persentase (<= 6 Bulan) (%)', ascending=False)
+
+        # Formatting percentage string
+        sub_df['Persentase (<= 6 Bulan) (%)'] = sub_df['Persentase (<= 6 Bulan) (%)'].apply(lambda x: f"{x:.2f}%")
+
+        # Select and Rename columns
+        final_table = sub_df[[
+            col_prodi, 
+            'Total_Responden', 
+            'Jumlah_Kurang_6_Bulan', 
+            'Persentase (<= 6 Bulan) (%)', 
+            'Rata_rata_Waktu_Tunggu'
+        ]].copy()
+        
+        final_table.columns = [
+            'Program Studi', 
+            'Total Responden (Bekerja)', 
+            'Jumlah Lulusan (<= 6 Bulan)', 
+            'Persentase (<= 6 Bulan) (%)', 
+            'Rata-rata Masa Tunggu (Bulan)'
+        ]
+
+        # Add Total row for this Jurusan
+        total_resp = final_table['Total Responden (Bekerja)'].sum()
+        total_k6 = final_table['Jumlah Lulusan (<= 6 Bulan)'].sum()
+        
+        # Mean for this specific Jurusan
+        jur_avg = df_filtered[df_filtered[col_jurusan] == jurusan]['Masa_Tunggu_Bulan'].mean()
+
+        total_row = pd.DataFrame({
+            'Program Studi': [f'TOTAL {jurusan}'],
+            'Total Responden (Bekerja)': [total_resp],
+            'Jumlah Lulusan (<= 6 Bulan)': [total_k6],
+            'Persentase (<= 6 Bulan) (%)': [f"{(total_k6 / total_resp * 100):.2f}%" if total_resp > 0 else "0.00%"],
+            'Rata-rata Masa Tunggu (Bulan)': [round(jur_avg, 1)]
+        })
+        
+        final_table = pd.concat([final_table, total_row], ignore_index=True)
+        
+        results[f"Rata-rata Waktu Tunggu - {jurusan}"] = final_table
+        
+    return results
+
+def create_salary_prodi_per_jurusan(df):
+    """
+    Creates a dictionary of tables, one per Jurusan.
+    Each table shows [Prodi] vs Average Salary estimation.
+    Returns: dict { "Jurusan Name": pd.DataFrame }
+    """
+    col_salary = 'Berapa rata-rata pendapatan Anda per bulan?'
+    col_jurusan = 'Jurusan'
+    col_prodi = 'prodi'
+    if col_prodi not in df.columns and 'Program Studi' in df.columns:
+        col_prodi = 'Program Studi'
+    col_status = 'Jelaskan status Anda saat ini?'
+    working_status = ['Bekerja (Full time/Part time)', 'Wiraswasta']
+    
+    if col_salary not in df.columns or col_jurusan not in df.columns or col_prodi not in df.columns:
+        return {}
+        
+    df_filtered = df.copy()
+    if col_status in df.columns:
+        df_filtered = df_filtered[df_filtered[col_status].isin(working_status)]
+    
+    df_filtered = df_filtered.dropna(subset=[col_salary])
+    
+    if df_filtered.empty:
+        return {}
+
+    salary_map = {
+        '< Rp. 1.000.000': 1000000,
+        'Rp. 1.000.001 - Rp. 2.000.000': 1500000,
+        'Rp. 2.000.001 - Rp. 3.000.000': 2500000,
+        'Rp. 3.000.001 - Rp. 4.000.000': 3500000,
+        'Rp. 4.000.001 - Rp. 5.000.000': 4500000,
+        'Rp. 5.000.001 - Rp. 6.000.000': 5500000,
+        'Rp. 6.000.001 - Rp. 7.000.000': 6500000,
+        'Rp. 7.000.001 - Rp. 8.000.000': 7500000,
+        '> Rp. 8.000.001': 8000000
+    }
+
+    df_filtered['salary_num'] = df_filtered[col_salary].map(salary_map)
+    
+    # Calculate Mean per [Jurusan, Prodi]
+    stats = df_filtered.groupby([col_jurusan, col_prodi])['salary_num'].agg(['mean', 'count']).reset_index()
+    
+    unique_jurusans = stats[col_jurusan].unique()
+    results = {}
+    
+    for jurusan in unique_jurusans:
+        sub_df = stats[stats[col_jurusan] == jurusan].copy()
+        sub_df = sub_df.sort_values(by='mean', ascending=False)
+        
+        # Format for display
+        sub_df['Rata-rata Gaji (Estimasi)'] = sub_df['mean'].apply(
+            lambda x: f"Rp{x/1000000:.1f} juta" if pd.notnull(x) else "Rp0.0 juta"
+        )
+        
+        final_table = sub_df[[col_prodi, 'count', 'Rata-rata Gaji (Estimasi)']].copy()
+        final_table.columns = ['Program Studi', 'Jumlah Responden', 'Rata-rata Gaji (Estimasi)']
+        
+        # Add Total Row for Jurusan
+        jur_total_data = df_filtered[df_filtered[col_jurusan] == jurusan]
+        jur_mean = jur_total_data['salary_num'].mean()
+        jur_count = jur_total_data['salary_num'].count()
+        
+        total_row = pd.DataFrame({
+            'Program Studi': [f'TOTAL {jurusan}'],
+            'Jumlah Responden': [jur_count],
+            'Rata-rata Gaji (Estimasi)': [f"Rp{jur_mean/1000000:.1f} juta" if pd.notnull(jur_mean) else "Rp0.0 juta"]
+        })
+        
+        final_table = pd.concat([final_table, total_row], ignore_index=True)
+        results[f"Rata-rata Gaji - {jurusan}"] = final_table
         
     return results
 
@@ -1764,6 +2060,13 @@ if __name__ == "__main__":
             print_styled_table(df_waktu_tunggu, "Table 5: Rata-rata Masa Tunggu Lulusan per Jurusan")
             # No chart requested for this yet, pass None
             dfs_to_report["Rata-rata Masa Tunggu Lulusan per Jurusan"] = (df_waktu_tunggu, None)
+            
+            # Breakdown per Prodi for each Jurusan (Average Waiting Time)
+            dict_waktu_tunggu_prodi = create_waktu_tunggu_prodi_per_jurusan(df_load)
+            if dict_waktu_tunggu_prodi:
+                for table_title, df_jur in dict_waktu_tunggu_prodi.items():
+                    print_styled_table(df_jur, table_title)
+                    dfs_to_report[table_title] = (df_jur, None)
 
         # New Table: Serapan per Jurusan
         df_serapan_jurusan = create_serapan_jurusan(df_load)
@@ -1781,6 +2084,13 @@ if __name__ == "__main__":
             for idx, (jurusan_name, df_jur) in enumerate(dict_serapan_prodi.items(), 1):
                 table_title = f"{jurusan_name}"
                 # Ensure spacing
+                print_styled_table(df_jur, table_title)
+                dfs_to_report[table_title] = (df_jur, None)
+        
+        # New Table: Masa Tunggu Prodi per Jurusan (Split Tables)
+        dict_masa_tunggu_prodi = create_masa_tunggu_prodi_per_jurusan(df_load)
+        if dict_masa_tunggu_prodi:
+            for table_title, df_jur in dict_masa_tunggu_prodi.items():
                 print_styled_table(df_jur, table_title)
                 dfs_to_report[table_title] = (df_jur, None)
         
@@ -1834,6 +2144,13 @@ if __name__ == "__main__":
             
             chart_salary_jurusan = get_horizontal_bar_chart_base64(df_chart_sj, "Ranking Jurusan berdasarkan Rata-rata Gaji")
             dfs_to_report["Rata-rata Gaji Lulusan per Jurusan"] = (df_salary_display, chart_salary_jurusan)
+            
+            # Breakdown per Prodi for each Jurusan (Average Salary)
+            dict_salary_prodi = create_salary_prodi_per_jurusan(df_load)
+            if dict_salary_prodi:
+                for table_title, df_jur in dict_salary_prodi.items():
+                    print_styled_table(df_jur, table_title)
+                    dfs_to_report[table_title] = (df_jur, None)
 
         # New Table: Ranking Jurusan (Static from Analysis)
         df_ranking = create_jurusan_ranking()
