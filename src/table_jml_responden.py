@@ -7,7 +7,7 @@ def _ensure_pkg(pkg):
     except ImportError:
         subprocess.check_call([sys.executable, "-m", "pip", "install", pkg])
 
-for _pkg in ["pandas", "numpy", "folium", "geopandas", "matplotlib", "shapely", "customtkinter", "seaborn", "tabulate"]:
+for _pkg in ["pandas", "numpy", "folium", "geopandas", "matplotlib", "shapely", "customtkinter", "seaborn", "tabulate", "scipy", "openpyxl"]:
     _ensure_pkg(_pkg)
 
 import pandas as pd
@@ -2225,6 +2225,153 @@ def generate_html_report(data_dict, output_file='report_tables.html'):
     print(f"Report generated successfully: {output_file}")
 
 
+def get_waktu_tunggu_global_smooth_line_chart_base64(df, title, chart_id):
+    """
+    Generates a global smooth line chart for waiting time distribution
+    """
+    col_masa_tunggu = 'Dalam berapa bulan Anda mendapatkan pekerjaan? Tulis dengan angka (Contoh: 1, 1Tahun = 12 bulan) rev2'
+    col_status = 'Jelaskan status Anda saat ini?'
+    working_status = ['Bekerja (Full time/Part time)', 'Wiraswasta']
+    
+    if col_masa_tunggu not in df.columns or col_status not in df.columns:
+        return None
+        
+    df_filtered = df[df[col_status].isin(working_status)].copy()
+    df_filtered['Masa_Tunggu_Bulan'] = pd.to_numeric(df_filtered[col_masa_tunggu], errors='coerce')
+    df_filtered = df_filtered.dropna(subset=['Masa_Tunggu_Bulan'])
+    
+    counts = df_filtered['Masa_Tunggu_Bulan'].value_counts().sort_index()
+    if counts.empty: return None
+    
+    x = counts.index.to_numpy()
+    y = counts.values
+    
+    plt.style.use('seaborn-v0_8-whitegrid')
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    from scipy.interpolate import make_interp_spline
+    
+    if len(x) > 3:
+        x_new = np.linspace(x.min(), x.max(), 300)
+        spline = make_interp_spline(x, y, k=3)
+        y_smooth = spline(x_new)
+        y_smooth = np.maximum(y_smooth, 0)
+    else:
+        x_new = x
+        y_smooth = y
+        
+    ax.plot(x_new, y_smooth, color='#00008B', linewidth=2)
+    ax.fill_between(x_new, y_smooth, alpha=0.3, color='#87CEEB')
+    
+    # Add vertical line for the mean
+    mean_val = df_filtered['Masa_Tunggu_Bulan'].mean()
+    ax.axvline(mean_val, color='red', linestyle='--', linewidth=2, label=f'Rata-rata: {mean_val:.1f} Bulan')
+    
+    ax.set_title(title, fontsize=14, fontweight='bold', pad=20)
+    ax.set_xlabel('Masa Tunggu (Bulan)', fontsize=12)
+    ax.set_ylabel('Jumlah Responden (Bekerja & Wiraswasta)', fontsize=12)
+    
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.legend(loc='upper right', fontsize=11)
+    
+    plt.tight_layout()
+    import io, base64
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    return base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+def get_waktu_tunggu_facet_smooth_line_chart_base64(df, title, chart_id):
+    """
+    Generates a facet grid smooth line chart for waiting time distribution per Jurusan
+    """
+    col_masa_tunggu = 'Dalam berapa bulan Anda mendapatkan pekerjaan? Tulis dengan angka (Contoh: 1, 1Tahun = 12 bulan) rev2'
+    col_status = 'Jelaskan status Anda saat ini?'
+    col_jurusan = 'Jurusan'
+    working_status = ['Bekerja (Full time/Part time)', 'Wiraswasta']
+    
+    if col_masa_tunggu not in df.columns or col_status not in df.columns or col_jurusan not in df.columns:
+        return None
+        
+    df_filtered = df[df[col_status].isin(working_status)].copy()
+    df_filtered['Masa_Tunggu_Bulan'] = pd.to_numeric(df_filtered[col_masa_tunggu], errors='coerce')
+    df_filtered = df_filtered.dropna(subset=['Masa_Tunggu_Bulan'])
+    
+    if df_filtered.empty: return None
+        
+    jurusans = sorted(df_filtered[col_jurusan].unique())
+    n_cats = len(jurusans)
+    n_cols = min(3, n_cats)
+    n_rows = (n_cats + n_cols - 1) // n_cols
+    
+    plt.style.use('seaborn-v0_8-whitegrid')
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(5*n_cols, 4*n_rows), sharex=False, sharey=False)
+    axes = axes.flatten() if n_cats > 1 else [axes]
+    
+    from scipy.interpolate import make_interp_spline
+    import matplotlib as mpl
+    colors = mpl.colormaps.get_cmap('tab20')
+    
+    for i, jurusan in enumerate(jurusans):
+        ax = axes[i]
+        df_jur = df_filtered[df_filtered[col_jurusan] == jurusan]
+        counts = df_jur['Masa_Tunggu_Bulan'].value_counts().sort_index()
+        
+        color = colors(i % 20)
+        
+        if counts.empty:
+            ax.set_title(jurusan, fontsize=11, fontweight='bold')
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            continue
+            
+        x = counts.index.to_numpy()
+        y = counts.values
+        
+        # Smooth line
+        if len(x) > 3:
+            x_new = np.linspace(x.min(), x.max(), 300)
+            spline = make_interp_spline(x, y, k=3)
+            y_smooth = spline(x_new)
+            y_smooth = np.maximum(y_smooth, 0)
+        else:
+            x_new = x
+            y_smooth = y
+            
+        # Plot smooth line without scatter dots
+        ax.plot(x_new, y_smooth, linewidth=2, color=color)
+        ax.fill_between(x_new, y_smooth, alpha=0.3, color=color)
+        
+        # Add average line
+        mean_val = df_jur['Masa_Tunggu_Bulan'].mean()
+        ax.axvline(mean_val, color='red', linestyle='--', linewidth=1.5)
+        # Add text annotation for average
+        y_max = y.max() if len(y) > 0 else 1
+        ax.text(mean_val + 0.1, y_max * 0.85, f'Rata: {mean_val:.1f}', color='red', fontsize=10, fontweight='bold', va='center')
+        
+        ax.set_title(jurusan, fontsize=11, fontweight='bold')
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.grid(True, linestyle='--', alpha=0.5)
+    
+    # Hide empty subplots
+    for j in range(len(jurusans), len(axes)):
+        axes[j].set_visible(False)
+        
+    fig.suptitle(title, fontsize=16, fontweight='bold', y=1.02)
+    # Add common labels
+    fig.supxlabel('Masa Tunggu (Bulan)', fontsize=12, y=-0.02)
+    fig.supylabel('Jumlah Responden', fontsize=12, x=-0.02)
+    
+    plt.tight_layout()
+    import io, base64
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    return base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+
 def get_all_charts(df, title, prefix):
     """Helper to generate bar, pie, and line charts for a dataframe."""
     charts = []
@@ -2284,7 +2431,23 @@ if __name__ == "__main__":
         if not df_waktu_tunggu.empty:
             # Prepare for chart: Set Jurusan as index
             df_wt_chart = df_waktu_tunggu.set_index('Jurusan').copy()
-            dfs_to_report["Rata-rata Masa Tunggu Lulusan per Jurusan"] = {"df": df_waktu_tunggu, "charts": get_all_charts(df_wt_chart, "Masa Tunggu per Jurusan", "wt_jurusan")}
+            charts_wt = get_all_charts(df_wt_chart, "Masa Tunggu per Jurusan", "wt_jurusan")
+            # Override the bar chart with the smooth line charts
+            new_charts_wt = []
+            for c in charts_wt:
+                if c["id"] == "wt_jurusan_bar":
+                    global_line = get_waktu_tunggu_global_smooth_line_chart_base64(df_load, "Distribusi Waktu Tunggu (Global)", "wt_jurusan_global_line")
+                    if global_line:
+                        new_charts_wt.append({"id": "wt_jurusan_global_line", "name": "Line Chart Global", "base64": global_line})
+                    
+                    facet_line = get_waktu_tunggu_facet_smooth_line_chart_base64(df_load, "Distribusi Waktu Tunggu per Jurusan", "wt_jurusan_facet_line")
+                    if facet_line:
+                        new_charts_wt.append({"id": "wt_jurusan_facet_line", "name": "Facet Line Chart", "base64": facet_line})
+                else:
+                    new_charts_wt.append(c)
+            charts_wt = new_charts_wt
+            
+            dfs_to_report["Rata-rata Masa Tunggu Lulusan per Jurusan"] = {"df": df_waktu_tunggu, "charts": charts_wt}
             
             # Breakdown per Prodi for each Jurusan
             dict_waktu_tunggu_prodi = create_waktu_tunggu_prodi_per_jurusan(df_load)
