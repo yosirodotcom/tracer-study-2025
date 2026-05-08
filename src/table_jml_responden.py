@@ -1853,6 +1853,99 @@ def get_horizontal_bar_chart_base64(df, title):
     """Legacy wrapper for backward compatibility if needed, but we'll use get_bar_chart_base64."""
     return get_bar_chart_base64(df, title, "legacy_bar")
 
+def get_smooth_trend_chart_base64(df, title, chart_id):
+    """
+    Generates a smooth line chart showing the trend of hiring by month.
+    """
+    col_status = 'Jelaskan status Anda saat ini?'
+    col_masa_tunggu = 'Dalam berapa bulan Anda mendapatkan pekerjaan? Tulis dengan angka (Contoh: 1, 1Tahun = 12 bulan) rev2'
+    
+    if col_status not in df.columns or col_masa_tunggu not in df.columns:
+        return None
+        
+    df_analysis = df[[col_status, col_masa_tunggu]].copy()
+    working_status = ['Bekerja (Full time/Part time)', 'Wiraswasta']
+    df_analysis = df_analysis[df_analysis[col_status].isin(working_status)]
+    
+    df_analysis[col_masa_tunggu] = pd.to_numeric(df_analysis[col_masa_tunggu], errors='coerce')
+    df_analysis = df_analysis.dropna(subset=[col_masa_tunggu])
+    
+    # Filter for realistic months (0 to 36)
+    df_analysis = df_analysis[(df_analysis[col_masa_tunggu] >= 0) & (df_analysis[col_masa_tunggu] <= 36)]
+    
+    monthly_counts = df_analysis.groupby(col_masa_tunggu).size().reset_index(name='Jumlah Lulusan')
+    monthly_counts.columns = ['Bulan', 'Jumlah Lulusan']
+    
+    if monthly_counts.empty:
+        return None
+        
+    plt.style.use('seaborn-v0_8-whitegrid')
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    x = monthly_counts['Bulan'].values
+    y = monthly_counts['Jumlah Lulusan'].values
+    
+    sort_idx = np.argsort(x)
+    x = x[sort_idx]
+    y = y[sort_idx]
+    
+    from scipy.interpolate import make_interp_spline
+    try:
+        if len(x) >= 4:
+            x_smooth = np.linspace(x.min(), x.max(), 300)
+            spl = make_interp_spline(x, y, k=3)
+            y_smooth = spl(x_smooth)
+            y_smooth = np.clip(y_smooth, 0, None)
+            ax.plot(x_smooth, y_smooth, color='#00008B', linewidth=2.5, label='Trend Diterima')
+            ax.fill_between(x_smooth, 0, y_smooth, color='#00008B', alpha=0.1)
+        else:
+            ax.plot(x, y, color='#00008B', linewidth=2.5, marker='o', label='Trend Diterima')
+            ax.fill_between(x, 0, y, color='#00008B', alpha=0.1)
+    except Exception:
+        ax.plot(x, y, color='#00008B', linewidth=2.5, marker='o', label='Trend Diterima')
+        ax.fill_between(x, 0, y, color='#00008B', alpha=0.1)
+        
+    ax.scatter(x, y, color='#00008B', s=40, zorder=5, alpha=0.8)
+    
+    for i in range(len(x)):
+        if y[i] > 0:
+            ax.annotate(str(int(y[i])), 
+                        (x[i], y[i]), 
+                        textcoords="offset points", 
+                        xytext=(0, 10), 
+                        ha='center', 
+                        fontsize=9,
+                        fontweight='bold',
+                        color='#00008B')
+
+    if len(y) > 0:
+        max_idx = np.argmax(y)
+        max_x = x[max_idx]
+        max_y = y[max_idx]
+        
+        ax.scatter([max_x], [max_y], color='#FF4500', s=120, zorder=6, edgecolors='white', linewidth=2)
+        
+        ax.annotate(f'Puncak: Bulan ke-{int(max_x)}\n({max_y} Alumni)',
+                    xy=(max_x, max_y), xytext=(0, 25),
+                    textcoords='offset points', ha='center', va='bottom',
+                    fontsize=11, fontweight='bold', color='#FF4500',
+                    bbox=dict(boxstyle='round,pad=0.5', fc='white', alpha=0.9, ec='#FF4500'))
+
+    ax.set_title(f"{title}", fontsize=14, fontweight='bold', pad=20)
+    ax.set_xlabel("Bulan (Masa Tunggu)", fontsize=12)
+    ax.set_ylabel("Jumlah Lulusan Diterima Bekerja", fontsize=12)
+    
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    
+    ax.xaxis.set_major_locator(plt.MaxNLocator(integer=True))
+    
+    plt.tight_layout()
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    return base64.b64encode(buffer.getvalue()).decode('utf-8')
+
 def apply_row_percentages_for_display(df):
     """
     Menambahkan persentase dalam kurung untuk setiap sel numerik 
@@ -2424,7 +2517,11 @@ if __name__ == "__main__":
         # 4. Masa Tunggu
         df_masa_tunggu = create_distribution_masa_tunggu_status(df_load)
         if not df_masa_tunggu.empty:
-            dfs_to_report["Distribusi Masa Tunggu Responden"] = {"df": df_masa_tunggu, "charts": get_all_charts(df_masa_tunggu, "Masa Tunggu", "masa_tunggu")}
+            charts_list = get_all_charts(df_masa_tunggu, "Masa Tunggu", "masa_tunggu")
+            trend_chart_b64 = get_smooth_trend_chart_base64(df_load, "Trend Waktu Diterima Bekerja (Bulan)", "masa_tunggu_trend")
+            if trend_chart_b64:
+                charts_list.append({"id": "masa_tunggu_trend", "name": "Trend Chart", "base64": trend_chart_b64})
+            dfs_to_report["Distribusi Masa Tunggu Responden"] = {"df": df_masa_tunggu, "charts": charts_list}
             
         # 5. Rata-rata Waktu Tunggu per Jurusan
         df_waktu_tunggu = create_distribution_waktu_tunggu_jurusan(df_load)
