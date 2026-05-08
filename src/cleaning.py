@@ -88,12 +88,12 @@ df = df.loc[:, ~df.columns.duplicated()]
 
 # Split "Program Studi" into "diploma" and "prodi"
 # User requested adding 'diploma', and then grouping by Jurusan, prodi, diploma.
-# We will generate 'diploma' and 'prodi' (cleaned name) while KEEPING 'Program Studi'.
+# We will generate 'diploma' and 'prodi' while KEEPING the prefix (D1, D2, D3, D4).
 prodi_col = "Program Studi"
-print("Splitting 'Program Studi' into 'diploma' and 'prodi'...")
+print("Extracting 'diploma' and keeping full 'prodi' name...")
 split_data = df[prodi_col].str.split(' - ', n=1, expand=True)
 df['diploma'] = split_data[0]
-df['prodi'] = split_data[1]
+df['prodi'] = df[prodi_col] # Keep full name as requested by user
 
 # Verify columns exist
 print("Columns after split:", df.columns.tolist())

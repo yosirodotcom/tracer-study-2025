@@ -349,16 +349,8 @@ def generate_full_report(jurusan_list=None):
     
     # Ensure 'prodi' column exists if likely needed
     if 'prodi' not in df.columns and 'Program Studi' in df.columns:
-        print("Deriving 'prodi' from 'Program Studi'...")
-        try:
-            split_data = df['Program Studi'].astype(str).str.split(' - ', n=1, expand=True)
-            if split_data.shape[1] > 1:
-                df['prodi'] = split_data[1]
-            else:
-                df['prodi'] = df['Program Studi'] # Fallback
-        except Exception as e:
-            print(f"Warning: Could not split 'Program Studi': {e}")
-            df['prodi'] = df['Program Studi']
+        print("Deriving 'prodi' from 'Program Studi' (preserving full name)...")
+        df['prodi'] = df['Program Studi'] # Keep full name as requested by user
     
     html_sections = ""
     

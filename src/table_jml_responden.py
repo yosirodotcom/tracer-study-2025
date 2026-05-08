@@ -7,7 +7,7 @@ def _ensure_pkg(pkg):
     except ImportError:
         subprocess.check_call([sys.executable, "-m", "pip", "install", pkg])
 
-for _pkg in ["pandas", "numpy", "folium", "geopandas", "matplotlib", "shapely", "customtkinter"]:
+for _pkg in ["pandas", "numpy", "folium", "geopandas", "matplotlib", "shapely", "customtkinter", "seaborn", "tabulate"]:
     _ensure_pkg(_pkg)
 
 import pandas as pd
@@ -1442,48 +1442,56 @@ def create_jurusan_ranking():
             "Peringkat": 1,
             "Jurusan": "Teknik Arsitektur",
             "Skor Kekuatan": "⭐⭐⭐⭐",
+            "Total": 4,
             "Predikat & Analisis": """<b>"The High Quality Performer"</b><br>Meskipun jumlah respondennya paling sedikit (52), namun jurusan ini JUARA 1 di dua kategori sekaligus: Kecepatan Serapan (77,5%) dan Gaji Tertinggi (Rp 3,8 Juta). Kualitas lulusannya sangat premium di mata pasar."""
         },
         {
             "Peringkat": 2,
             "Jurusan": "Akuntansi",
             "Skor Kekuatan": "⭐⭐⭐⭐",
+            "Total": 4,
             "Predikat & Analisis": """<b>"The Major Contributor"</b><br>Naik signifikan ke peringkat 2 berkat Volume Responden Tertinggi (226 orang) yang mendominasi 30% data survei. Selain itu, kecepatan serapannya sangat baik (Juara 2). Nilai minus hanya pada gaji awal yang masih entry level."""
         },
         {
             "Peringkat": 3,
             "Jurusan": "Teknik Sipil & Perencanaan",
             "Skor Kekuatan": "⭐⭐⭐",
+            "Total": 3,
             "Predikat & Analisis": """<b>"The Fastest Hired"</b><br>Unggul mutlak di Masa Tunggu Tercepat (3,4 bulan). Sangat efisien dalam mengantarkan lulusan ke dunia kerja, meskipun volume responden dan gaji berada di level menengah."""
         },
         {
             "Peringkat": 4,
             "Jurusan": "Teknik Mesin",
             "Skor Kekuatan": "⭐⭐⭐",
+            "Total": 3,
             "Predikat & Analisis": """<b>"The High Valued Entrepreneur"</b><br>Unggul di Gaji Tertinggi (Rp 3,8 Juta) dan jumlah responden yang besar (110 orang). Peringkatnya tertahan karena masa tunggu rata-rata yang cukup lama (6,4 bulan), namun ini terkompensasi oleh tingginya angka wirausaha."""
         },
         {
             "Peringkat": 5,
             "Jurusan": "Ilmu Kelautan & Perikanan",
             "Skor Kekuatan": "⭐⭐",
+            "Total": 2,
             "Predikat & Analisis": """<b>"The Balanced Niche"</b><br>Memiliki performa yang seimbang di semua lini. Tidak terlalu menonjol di satu sisi, tapi cukup stabil dalam serapan (71,8%) dan masa tunggu (5,2 bulan)."""
         },
         {
             "Peringkat": 6,
             "Jurusan": "Teknik Elektro",
             "Skor Kekuatan": "⭐⭐",
+            "Total": 2,
             "Predikat & Analisis": """<b>"The Steady Player"</b><br>Konsisten di papan tengah. Memiliki gaji yang cukup baik (Rp 3,5 Juta) di atas rata-rata institusi, namun butuh peningkatan dalam kecepatan serapan (67,5%)."""
         },
         {
             "Peringkat": 7,
             "Jurusan": "Administrasi Bisnis",
             "Skor Kekuatan": "⭐⭐",
+            "Total": 2,
             "Predikat & Analisis": """<b>"The Salary Surprise"</b><br>Meskipun secara ranking umum ada di bawah, jurusan ini punya keunggulan Gaji Tinggi (Rp 3,7 Juta - Peringkat 3). Tantangannya ada pada masa tunggu yang paling lama (6,4 bulan) dan volume responden yang moderat."""
         },
         {
             "Peringkat": 8,
             "Jurusan": "Teknologi Pertanian",
             "Skor Kekuatan": "⭐",
+            "Total": 1,
             "Predikat & Analisis": """<b>"The Job Creator"</b><br>Secara statistik "pekerja", jurusan ini ada di bawah (gaji & kecepatan rendah). NAMUN, perlu dicatat: Jurusan ini adalah Raja Wirausaha (21 orang). Indikator ranking ini bias ke "karyawan", sehingga potensi wirausaha Pertanian tidak terpotret penuh di sini."""
         }
     ]
@@ -1635,76 +1643,148 @@ import base64
 import numpy as np
 import matplotlib.colors as mcolors
 
-def get_horizontal_bar_chart_base64(df, title):
+def get_bar_chart_base64(df, title, chart_id, orientation='horizontal'):
     """
-    Generates a horizontal bar chart from the dataframe and returns it as a base64 string.
-    Theme: Gradient from DarkBlue to DarkGrey.
+    Generates a bar chart (horizontal or vertical) and returns it as a base64 string.
     """
-    # Create a copy to avoid modifying original
     df_plot = df.copy()
     
-    # 1. Prepare Data
-    # Remove 'Total' row if it exists
-    if 'Total' in df_plot.index:
-        df_plot = df_plot.drop('Total')
-        
-    # Sort by 'Total' column descending so largest bars are at top
+    # Robustly remove Total rows/columns
+    rows_to_drop = [i for i in df_plot.index if 'total' in str(i).lower()]
+    if rows_to_drop: df_plot = df_plot.drop(index=rows_to_drop)
+    
+    cols_to_drop = [c for c in df_plot.columns if 'total' in str(c).lower() and c != 'Total']
+    if cols_to_drop: df_plot = df_plot.drop(columns=cols_to_drop)
+    
+    # Identify value column: 'Total' or the last numeric column
+    numeric_cols = df_plot.select_dtypes(include=[np.number]).columns
     if 'Total' in df_plot.columns:
-        df_plot = df_plot.sort_values(by='Total', ascending=True) # Ascending for barh (bottom to top)
-        values = df_plot['Total']
+        val_col = 'Total'
+    elif not numeric_cols.empty:
+        val_col = numeric_cols[-1]
     else:
-        # Fallback if no Total column (shouldn't happen with our data)
-        values = df_plot.iloc[:, -1]
+        return None
         
+    df_plot = df_plot.sort_values(by=val_col, ascending=(orientation == 'horizontal'))
+    values = df_plot[val_col]
     labels = df_plot.index.astype(str)
-    
-    # 2. Create Gradient Colors
-    # Define gradient: DarkBlue (#00008B) to DarkGrey (#A9A9A9)
+
     n_bars = len(values)
-    colors = []
-    if n_bars > 0:
-        cmap = mcolors.LinearSegmentedColormap.from_list("my_gradient", ["#A9A9A9", "#00008B"])
-        # Generate colors based on value magnitude (normalized)
-        # Or just simple gradient from top to bottom?
-        # Let's do magnitude based gradient (darker = larger value)
-        norm = plt.Normalize(values.min(), values.max())
-        colors = [cmap(norm(v)) for v in values]
+    if n_bars == 0: return None
+
+    # Style
+    plt.style.use('seaborn-v0_8-whitegrid')
+    fig, ax = plt.subplots(figsize=(10, max(5, n_bars * 0.4) if orientation == 'horizontal' else 6))
     
-    # 3. Plotting
-    fig, ax = plt.subplots(figsize=(10, max(6, n_bars * 0.4))) # Dynamic height
-    bars = ax.barh(labels, values, color=colors, edgecolor='none')
-    
-    # 4. Styling
-    ax.set_title(f"Grafik: {title}", fontsize=14, fontweight='bold', pad=20, color='#2c3e50')
-    ax.set_xlabel("Jumlah Responden", fontsize=10, color='#555')
-    
-    # Remove top and right spines
+    cmap = mcolors.LinearSegmentedColormap.from_list("blue_grad", ["#A9A9A9", "#00008B"])
+    norm = plt.Normalize(values.min(), values.max())
+    colors = [cmap(norm(v)) for v in values]
+
+    if orientation == 'horizontal':
+        bars = ax.barh(labels, values, color=colors)
+        for bar in bars:
+            ax.text(bar.get_width() + (max(values)*0.01), bar.get_y() + bar.get_height()/2, 
+                    f'{int(bar.get_width())}', va='center', fontsize=9, fontweight='bold')
+    else:
+        bars = ax.bar(labels, values, color=colors)
+        plt.xticks(rotation=45, ha='right')
+        for bar in bars:
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + (max(values)*0.01), 
+                    f'{int(bar.get_height())}', ha='center', va='bottom', fontsize=9, fontweight='bold')
+
+    ax.set_title(f"{title}", fontsize=14, fontweight='bold', pad=20)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
-    ax.spines['left'].set_color('#ccc')
-    ax.spines['bottom'].set_color('#ccc')
     
-    # Add grid on x-axis
-    ax.xaxis.grid(True, linestyle='--', alpha=0.6, color='#ddd')
-    ax.set_axisbelow(True)
+    plt.tight_layout()
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    return base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+def get_pie_chart_base64(df, title, chart_id):
+    """
+    Generates a pie chart and returns it as a base64 string.
+    """
+    df_plot = df.copy()
+    rows_to_drop = [i for i in df_plot.index if 'total' in str(i).lower()]
+    if rows_to_drop: df_plot = df_plot.drop(index=rows_to_drop)
     
-    # Add value labels at the end of bars
-    for i, bar in enumerate(bars):
-        width = bar.get_width()
-        ax.text(width + (max(values)*0.01), bar.get_y() + bar.get_height()/2, 
-                f'{int(width)}', 
-                va='center', fontsize=9, color='#333', fontweight='bold')
-                
+    numeric_cols = df_plot.select_dtypes(include=[np.number]).columns
+    val_col = 'Total' if 'Total' in df_plot.columns else (numeric_cols[-1] if not numeric_cols.empty else None)
+    if not val_col: return None
+    
+    df_plot = df_plot.sort_values(by=val_col, ascending=False)
+    
+    if len(df_plot) > 10:
+        top = df_plot.head(9)
+        others = pd.DataFrame({val_col: [df_plot.iloc[9:][val_col].sum()]}, index=['Lainnya'])
+        df_plot = pd.concat([top, others])
+
+    values = df_plot[val_col]
+    labels = df_plot.index.astype(str)
+    
+    if len(values) == 0: return None
+
+    plt.style.use('seaborn-v0_8-whitegrid')
+    fig, ax = plt.subplots(figsize=(8, 8))
+    
+    colors = plt.cm.Blues(np.linspace(0.4, 0.9, len(values)))
+    wedges, texts, autotexts = ax.pie(values, labels=labels, autopct='%1.1f%%', 
+                                    startangle=140, colors=colors, pctdistance=0.85,
+                                    wedgeprops={'edgecolor': 'white', 'linewidth': 1})
+    
+    centre_circle = plt.Circle((0,0), 0.70, fc='white')
+    fig.gca().add_artist(centre_circle)
+    
+    plt.setp(autotexts, size=9, weight="bold", color="black")
+    plt.setp(texts, size=10)
+    
+    ax.set_title(f"{title}", fontsize=14, fontweight='bold', pad=20)
     plt.tight_layout()
     
-    # 5. Save to Base64 (High Resolution)
     buffer = io.BytesIO()
-    # Increase DPI for high resolution (e.g. 300)
-    plt.savefig(buffer, format='png', bbox_inches='tight', dpi=300)
+    plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
     plt.close(fig)
-    buffer.seek(0)
-    image_base64 = base64.b64encode(buffer.read()).decode('utf-8')
-    return image_base64
+    return base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+def get_line_chart_base64(df, title, chart_id):
+    """
+    Generates a line chart and returns it as a base64 string.
+    Suitable for data with numeric/temporal columns.
+    """
+    df_plot = df.copy()
+    rows_to_drop = [i for i in df_plot.index if 'total' in str(i).lower()]
+    if rows_to_drop: df_plot = df_plot.drop(index=rows_to_drop)
+    
+    year_cols = [c for c in df_plot.columns if str(c).isdigit()]
+    if not year_cols:
+        return None
+    
+    plt.style.use('seaborn-v0_8-whitegrid')
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    for label, row in df_plot.iterrows():
+        ax.plot(year_cols, row[year_cols], marker='o', label=label, linewidth=2)
+    
+    ax.set_title(f"{title}", fontsize=14, fontweight='bold', pad=20)
+    ax.set_xlabel("Tahun")
+    ax.set_ylabel("Jumlah")
+    if len(df_plot) > 1:
+        ax.legend(title="Kategori", bbox_to_anchor=(1.05, 1), loc='upper left')
+    
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    
+    plt.tight_layout()
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    return base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+def get_horizontal_bar_chart_base64(df, title):
+    """Legacy wrapper for backward compatibility if needed, but we'll use get_bar_chart_base64."""
+    return get_bar_chart_base64(df, title, "legacy_bar")
 
 def generate_html_report(data_dict, output_file='report_tables.html'):
     """
@@ -1875,19 +1955,30 @@ def generate_html_report(data_dict, output_file='report_tables.html'):
     """
     
     section_id = 0
-    for title, content_tuple in data_dict.items():
-        # Unpack based on length
-        if len(content_tuple) == 3:
-            df, chart_base64, map_path = content_tuple
+    for title, content in data_dict.items():
+        # Handle different input formats for backward compatibility
+        if isinstance(content, dict):
+            df = content.get('df')
+            charts = content.get('charts', [])
+            map_path = content.get('map')
+        elif isinstance(content, tuple):
+            df = content[0]
+            # If it was a single chart string
+            chart_val = content[1]
+            if isinstance(chart_val, str):
+                charts = [{"id": f"chart_{section_id}", "name": "Grafik", "base64": chart_val}]
+            elif isinstance(chart_val, list):
+                charts = chart_val
+            else:
+                charts = []
+            map_path = content[2] if len(content) > 2 else None
         else:
-            df, chart_base64 = content_tuple
-            map_path = None
+            continue
             
         section_id += 1
-        safe_title = title.replace(" ", "_").lower()
         table_id = f"table_{section_id}"
         
-        html_content += f'<div class="section">'
+        html_content += f'<div class="section" id="section_{section_id}">'
         html_content += f"<h2>{title}</h2>"
         
         # --- Table Section ---
@@ -1895,50 +1986,33 @@ def generate_html_report(data_dict, output_file='report_tables.html'):
         html_content += f'<button class="btn" onclick="saveTable(\'{table_id}\', \'{title}_table\')">Simpan Tabel</button>'
         html_content += '</div>'
         
-        # reset_index to ensure the index part (like Lokasi Kampus) is a proper column
-        if df.index.name:
-             df_to_html = df.reset_index()
-        else:
-             df_to_html = df.copy()
+        if df is not None:
+            df_to_html = df.reset_index() if df.index.name else df.copy()
+            df_to_html.columns.name = None
+            table_html = df_to_html.to_html(index=False, border=0, classes='table', table_id=table_id, escape=False)
+            if f'id="{table_id}"' not in table_html:
+                table_html = table_html.replace('<table', f'<table id="{table_id}"')
+            html_content += table_html
         
-        # Fix: Clear the columns name
-        df_to_html.columns.name = None
-        
-        # Convert to HTML without default border attribute
-        # Add ID for html2canvas
-        table_html = df_to_html.to_html(index=False, border=0, classes='table', table_id=table_id, escape=False)
-        # Pandas to_html doesn't support table_id directly in older versions, so let's inject it via string replacement if needed
-        # Actually it does support table_id in newer versions, but let's be safe.
-        if f'id="{table_id}"' not in table_html:
-             table_html = table_html.replace('<table', f'<table id="{table_id}"')
-             
-        html_content += table_html
-        
-        # --- Chart Section ---
-        if chart_base64:
-            html_content += f"""
-            <div class="chart-container">
-                <div class="btn-group" style="text-align: right;">
-                    <a href="data:image/png;base64,{chart_base64}" download="{title}_chart.png" class="btn btn-secondary">Simpan Grafik (High Res)</a>
+        # --- Charts Section ---
+        if charts:
+            html_content += '<div class="charts-grid" style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; margin-top: 20px;">'
+            for chart in charts:
+                c_id = chart.get('id', 'unnamed')
+                c_name = chart.get('name', 'Grafik')
+                c_b64 = chart.get('base64')
+                if not c_b64: continue
+                
+                html_content += f"""
+                <div class="chart-container" style="flex: 1; min-width: 45%; max-width: 100%;">
+                    <div class="btn-group" style="text-align: right;">
+                        <span style="float: left; font-size: 0.8rem; color: #7f8c8d;">ID: {c_id}</span>
+                        <a href="data:image/png;base64,{c_b64}" download="{c_id}.png" class="btn btn-secondary">Simpan {c_name}</a>
+                    </div>
+                    <img src="data:image/png;base64,{c_b64}" alt="{c_name}" class="chart-img" id="{c_id}">
                 </div>
-                <img src="data:image/png;base64,{chart_base64}" alt="Chart for {title}" class="chart-img">
-            </div>
-            """
-            
-            """
-        
-        # --- Map Section --- 
-        # User requested to REMOVE maps from HTML report (Step 908)
-        # if map_path:
-        #     html_content += f"""
-        #     <div class="chart-container" style="text-align: left;">
-        #         <h3>Peta Interaktif</h3>
-        #         <iframe src="{map_path}" width="100%" height="500" style="border:none;"></iframe>
-        #         <div style="margin-top: 10px; text-align: right;">
-        #             <a href="{map_path}" target="_blank" class="btn btn-secondary">Buka Peta Fullscreen</a>
-        #         </div>
-        #     </div>
-        #     """
+                """
+            html_content += '</div>'
         
         html_content += '</div>'
 
@@ -2002,11 +2076,30 @@ def generate_html_report(data_dict, output_file='report_tables.html'):
     print(f"Report generated successfully: {output_file}")
 
 
+def get_all_charts(df, title, prefix):
+    """Helper to generate bar, pie, and line charts for a dataframe."""
+    charts = []
+    # Prepare DF (Ensure index is set if it's a category)
+    df_chart = df.copy()
+    
+    # Bar Chart
+    bar = get_bar_chart_base64(df_chart, title, f"{prefix}_bar")
+    if bar: charts.append({"id": f"{prefix}_bar", "name": "Bar Chart", "base64": bar})
+    
+    # Pie Chart
+    pie = get_pie_chart_base64(df_chart, title, f"{prefix}_pie")
+    if pie: charts.append({"id": f"{prefix}_pie", "name": "Pie Chart", "base64": pie})
+    
+    # Line Chart
+    line = get_line_chart_base64(df_chart, title, f"{prefix}_line")
+    if line: charts.append({"id": f"{prefix}_line", "name": "Line Chart", "base64": line})
+    
+    return charts
+
 if __name__ == "__main__":
     import os
     print("--- Running table_jml_responden.py ---")
     
-    # Define paths
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     DATA_CLEANED = os.path.join(BASE_DIR, 'data', 'processed', 'cleaned_data.xlsx')
     REPORTS_DIR = os.path.join(BASE_DIR, 'reports')
@@ -2014,149 +2107,102 @@ if __name__ == "__main__":
 
     file_path = DATA_CLEANED
     if not os.path.exists(file_path):
-        print(f"{file_path} not found, trying data.xlsx")
         DATA_RAW = os.path.join(BASE_DIR, 'data', 'raw', 'data.xlsx')
         file_path = DATA_RAW
         
     try:
         print(f"Loading data from {file_path}...")
         df_load = pd.read_excel(file_path)
-        
-        # Calculate dataframes
-        df_campus = create_distribution_campus_loc_tahun(df_load)
-        df_jurusan = create_distribution_jurusan_tahun(df_load)
-        df_prodi = create_distribution_prodi_tahun(df_load)
-        
-        # Print to console (using our styled printer)
-        print_styled_table(df_campus, "Table 1: Lokasi Kampus vs Tahun Lulus")
-        print_styled_table(df_jurusan, "Table 2: Jurusan vs Tahun Lulus")
-        print_styled_table(df_prodi, "Table 3: Program Studi vs Tahun Lulus")
-        
-        # Generate Charts
-        print("\nGenerating Charts...")
-        chart_campus = get_horizontal_bar_chart_base64(df_campus, "Lokasi Kampus")
-        chart_jurusan = get_horizontal_bar_chart_base64(df_jurusan, "Jurusan")
-        chart_prodi = get_horizontal_bar_chart_base64(df_prodi, "Program Studi")
+        dfs_to_report = {}
 
-        # Generate HTML Report
-        print("\nGenerating HTML report...")
-        # Passing tuple (dataframe, chart_image)
-        dfs_to_report = {
-            "Distribusi Berdasarkan Lokasi Kampus": (df_campus, chart_campus),
-            "Distribusi Berdasarkan Jurusan": (df_jurusan, chart_jurusan),
-            "Distribusi Berdasarkan Program Studi": (df_prodi, chart_prodi)
-        }
+        # 1-3. Campus, Jurusan, Prodi
+        df_campus = create_distribution_campus_loc_tahun(df_load)
+        dfs_to_report["Distribusi Berdasarkan Lokasi Kampus"] = {"df": df_campus, "charts": get_all_charts(df_campus, "Lokasi Kampus", "campus")}
         
-        # New Table: Masa Tunggu
+        df_jurusan = create_distribution_jurusan_tahun(df_load)
+        dfs_to_report["Distribusi Berdasarkan Jurusan"] = {"df": df_jurusan, "charts": get_all_charts(df_jurusan, "Jurusan", "jurusan")}
+        
+        df_prodi = create_distribution_prodi_tahun(df_load)
+        dfs_to_report["Distribusi Berdasarkan Program Studi"] = {"df": df_prodi, "charts": get_all_charts(df_prodi, "Program Studi", "prodi")}
+        
+        # 4. Masa Tunggu
         df_masa_tunggu = create_distribution_masa_tunggu_status(df_load)
         if not df_masa_tunggu.empty:
-            print_styled_table(df_masa_tunggu, "Table 4: Status Pekerjaan vs Masa Tunggu")
-            chart_masa_tunggu = get_horizontal_bar_chart_base64(df_masa_tunggu, "Status Pekerjaan vs Masa Tunggu")
-            dfs_to_report["Distribusi Masa Tunggu Responden"] = (df_masa_tunggu, chart_masa_tunggu)
+            dfs_to_report["Distribusi Masa Tunggu Responden"] = {"df": df_masa_tunggu, "charts": get_all_charts(df_masa_tunggu, "Masa Tunggu", "masa_tunggu")}
             
-        # New Table: Rata-rata Waktu Tunggu per Jurusan
+        # 5. Rata-rata Waktu Tunggu per Jurusan
         df_waktu_tunggu = create_distribution_waktu_tunggu_jurusan(df_load)
         if not df_waktu_tunggu.empty:
-            print_styled_table(df_waktu_tunggu, "Table 5: Rata-rata Masa Tunggu Lulusan per Jurusan")
-            # No chart requested for this yet, pass None
-            dfs_to_report["Rata-rata Masa Tunggu Lulusan per Jurusan"] = (df_waktu_tunggu, None)
+            # Prepare for chart: Set Jurusan as index
+            df_wt_chart = df_waktu_tunggu.set_index('Jurusan').copy()
+            dfs_to_report["Rata-rata Masa Tunggu Lulusan per Jurusan"] = {"df": df_waktu_tunggu, "charts": get_all_charts(df_wt_chart, "Masa Tunggu per Jurusan", "wt_jurusan")}
             
-            # Breakdown per Prodi for each Jurusan (Average Waiting Time)
+            # Breakdown per Prodi for each Jurusan
             dict_waktu_tunggu_prodi = create_waktu_tunggu_prodi_per_jurusan(df_load)
-            if dict_waktu_tunggu_prodi:
-                for table_title, df_jur in dict_waktu_tunggu_prodi.items():
-                    print_styled_table(df_jur, table_title)
-                    dfs_to_report[table_title] = (df_jur, None)
+            for table_title, df_jur in dict_waktu_tunggu_prodi.items():
+                pfx = table_title.replace(" ", "_").lower()
+                df_c = df_jur.set_index('Program Studi')
+                dfs_to_report[table_title] = {"df": df_jur, "charts": get_all_charts(df_c, table_title, pfx)}
 
-        # New Table: Serapan per Jurusan
+        # 6. Serapan per Jurusan
         df_serapan_jurusan = create_serapan_jurusan(df_load)
         if not df_serapan_jurusan.empty:
-            print_styled_table(df_serapan_jurusan, "Table 6: Serapan Lulusan per Jurusan")
-            chart_serapan_jurusan = get_horizontal_bar_chart_base64(df_serapan_jurusan, "Serapan Lulusan per Jurusan")
-            dfs_to_report["Serapan Lulusan per Jurusan"] = (df_serapan_jurusan, chart_serapan_jurusan)
+            dfs_to_report["Serapan Lulusan per Jurusan"] = {"df": df_serapan_jurusan, "charts": get_all_charts(df_serapan_jurusan, "Serapan Jurusan", "serapan_jurusan")}
             
-        # Table 7: Serapan Prodi per Jurusan (Split Tables)
-        # Now returns a dictionary of dataframes
+        # 7. Serapan Prodi per Jurusan
         dict_serapan_prodi = create_serapan_prodi_per_jurusan(df_load)
-        if dict_serapan_prodi:
-            # We iterate and add them one by one
-            # Use 7.1, 7.2 etc numbering logic or just title
-            for idx, (jurusan_name, df_jur) in enumerate(dict_serapan_prodi.items(), 1):
-                table_title = f"{jurusan_name}"
-                # Ensure spacing
-                print_styled_table(df_jur, table_title)
-                dfs_to_report[table_title] = (df_jur, None)
+        for jurusan_name, df_jur in dict_serapan_prodi.items():
+            pfx = f"serapan_{jurusan_name.replace(' ', '_').lower()}"
+            df_c = df_jur.set_index('Program Studi')
+            dfs_to_report[jurusan_name] = {"df": df_jur, "charts": get_all_charts(df_c, jurusan_name, pfx)}
         
-        # New Table: Masa Tunggu Prodi per Jurusan (Split Tables)
+        # 8. Masa Tunggu Prodi per Jurusan
         dict_masa_tunggu_prodi = create_masa_tunggu_prodi_per_jurusan(df_load)
-        if dict_masa_tunggu_prodi:
-            for table_title, df_jur in dict_masa_tunggu_prodi.items():
-                print_styled_table(df_jur, table_title)
-                dfs_to_report[table_title] = (df_jur, None)
+        for table_title, df_jur in dict_masa_tunggu_prodi.items():
+            pfx = table_title.replace(" ", "_").lower()
+            df_c = df_jur.set_index('Program Studi')
+            dfs_to_report[table_title] = {"df": df_jur, "charts": get_all_charts(df_c, table_title, pfx)}
         
-        # Table 8: Sebaran Provinsi
+        # 9. Sebaran Provinsi
         df_provinsi = create_distribution_provinsi(df_load)
         if not df_provinsi.empty:
-            print_styled_table(df_provinsi, "Table 8: Sebaran Alumni per Provinsi")
-            # Generate Map
-            MAP_OUTPUT = os.path.join(REPORTS_DIR, 'Peta_Sebaran_Alumni.html')
-            generate_alumni_map(df_provinsi, MAP_OUTPUT)
-            # Add table to report
-            # Pass map filename reference for IFrame
-            dfs_to_report["Sebaran Alumni per Provinsi"] = (df_provinsi, None, 'Peta_Sebaran_Alumni.html')
+            df_p_chart = df_provinsi.set_index('Provinsi').copy()
+            dfs_to_report["Sebaran Alumni per Provinsi"] = {"df": df_provinsi, "charts": get_all_charts(df_p_chart, "Sebaran Provinsi", "provinsi"), "map": 'Peta_Sebaran_Alumni.html'}
+            generate_alumni_map(df_provinsi, os.path.join(REPORTS_DIR, 'Peta_Sebaran_Alumni.html'))
             
-        # New Table: Sebaran Kota/Kabupaten Kalbar
+        # 10. Sebaran Kota/Kabupaten Kalbar
         df_kalbar = create_distribution_kabkota_kalbar(df_load)
         if not df_kalbar.empty:
-             print_styled_table(df_kalbar, "Table 9: Distribusi Serapan Alumni di DUDI")
-             # Prepare df for chart: Rename 'Jumlah Responden' to 'Total' and drop percentage string
-             df_chart = df_kalbar.set_index('Kota/Kabupaten')[['Jumlah Responden']].rename(columns={'Jumlah Responden': 'Total'})
-             chart_kalbar = get_horizontal_bar_chart_base64(
-                 df_chart,
-                 "Sebaran Alumni Kalbar per Kota/Kabupaten"
-             )
-
-             # Generate Kalbar Map
-             MAP_KALBAR_OUTPUT = os.path.join(REPORTS_DIR, 'Peta_Sebaran_Kalbar.html')
-             generate_kalbar_map(df_kalbar, MAP_KALBAR_OUTPUT)
+             df_k_chart = df_kalbar.set_index('Kota/Kabupaten').copy()
+             dfs_to_report["Distribusi Serapan Alumni di DUDI"] = {"df": df_kalbar, "charts": get_all_charts(df_k_chart, "Sebaran Kalbar", "kalbar"), "map": 'Peta_Sebaran_Kalbar.html'}
+             generate_kalbar_map(df_kalbar, os.path.join(REPORTS_DIR, 'Peta_Sebaran_Kalbar.html'))
              
-             dfs_to_report["Distribusi Serapan Alumni di DUDI"] = (df_kalbar, chart_kalbar, 'Peta_Sebaran_Kalbar.html')
-
-        # New Table: Distribusi Pendapatan
+        # 11. Distribusi Pendapatan
         df_salary = create_salary_distribution(df_load)
         if not df_salary.empty:
-            print_styled_table(df_salary, "Table 10: Distribusi Pendapatan Responden per Bulan")
-            # Prepare df for chart
-            df_salary_chart = df_salary[df_salary['Rata-rata Pendapatan'] != 'Total'].copy()
-            df_salary_chart = df_salary_chart.set_index('Rata-rata Pendapatan')[['Jumlah Responden']].rename(columns={'Jumlah Responden': 'Total'})
-            
-            chart_salary = get_horizontal_bar_chart_base64(df_salary_chart, "Distribusi Pendapatan")
-            dfs_to_report["Distribusi Rata-rata Pendapatan Lulusan per Bulan"] = (df_salary, chart_salary)
+            df_s_chart = df_salary.set_index('Rata-rata Pendapatan').copy()
+            dfs_to_report["Distribusi Rata-rata Pendapatan Lulusan per Bulan"] = {"df": df_salary, "charts": get_all_charts(df_s_chart, "Distribusi Gaji", "gaji")}
 
-        # New Table: Rata-rata Gaji per Jurusan
+        # 12. Rata-rata Gaji per Jurusan
         result_salary = create_salary_by_jurusan(df_load)
         if result_salary and not result_salary[0].empty:
             df_salary_display, df_salary_ranked = result_salary
-            print_styled_table(df_salary_display, "Table 11: Rata-rata Gaji Lulusan per Jurusan (Estimasi)")
+            df_sj_chart = df_salary_ranked.set_index('Jurusan').copy()
+            dfs_to_report["Rata-rata Gaji Lulusan per Jurusan"] = {"df": df_salary_display, "charts": get_all_charts(df_sj_chart, "Gaji per Jurusan", "gaji_jurusan")}
             
-            # Prepare for chart
-            df_chart_sj = df_salary_ranked.set_index('Jurusan')[['Total']]
-            
-            chart_salary_jurusan = get_horizontal_bar_chart_base64(df_chart_sj, "Ranking Jurusan berdasarkan Rata-rata Gaji")
-            dfs_to_report["Rata-rata Gaji Lulusan per Jurusan"] = (df_salary_display, chart_salary_jurusan)
-            
-            # Breakdown per Prodi for each Jurusan (Average Salary)
             dict_salary_prodi = create_salary_prodi_per_jurusan(df_load)
-            if dict_salary_prodi:
-                for table_title, df_jur in dict_salary_prodi.items():
-                    print_styled_table(df_jur, table_title)
-                    dfs_to_report[table_title] = (df_jur, None)
+            for table_title, df_jur in dict_salary_prodi.items():
+                pfx = table_title.replace(" ", "_").lower()
+                df_c = df_jur.set_index('Program Studi')
+                dfs_to_report[table_title] = {"df": df_jur, "charts": get_all_charts(df_c, table_title, pfx)}
 
-        # New Table: Ranking Jurusan (Static from Analysis)
+        # 13. Ranking Jurusan
         df_ranking = create_jurusan_ranking()
-        print_styled_table(df_ranking, "Table 12: Peringkat Performa Jurusan")
-        dfs_to_report["Peringkat Performa Jurusan - Tracer Study 2025"] = (df_ranking, None)
+        if not df_ranking.empty:
+            df_r_chart = df_ranking.set_index('Jurusan').copy()
+            dfs_to_report["Peringkat Performa Jurusan - Tracer Study 2025"] = {"df": df_ranking, "charts": get_all_charts(df_r_chart, "Ranking Jurusan", "ranking")}
 
+        print("\nGenerating HTML report...")
         generate_html_report(dfs_to_report, output_file=REPORT_OUTPUT)
         
     except Exception as e:
