@@ -426,11 +426,13 @@ def map_to_png(m, output_path):
     """
     pass
 
-def sort_crosstab_by_total(df_crosstab):
+def sort_crosstab_by_total(df_crosstab, denominator=None):
     """
     Sorts the crosstab DataFrame by the 'Total' column in descending order,
     keeping the 'Total' row (margin) at the bottom.
     Also adds a 'Persentase' column.
+    If 'denominator' is provided, it uses it for percentage calculation 
+    instead of the crosstab's own total.
     """
     if 'Total' not in df_crosstab.columns:
         return df_crosstab
@@ -456,7 +458,9 @@ def sort_crosstab_by_total(df_crosstab):
     # Add Percentage Calculation
     if 'Total' in df_final.columns:
         # Determine grand total (denominator)
-        if 'Total' in df_final.index:
+        if denominator is not None:
+             grand_total = denominator
+        elif 'Total' in df_final.index:
              grand_total = df_final.loc['Total', 'Total']
         else:
              grand_total = df_final['Total'].sum()
@@ -579,6 +583,9 @@ def create_distribution_masa_tunggu_status(df):
 
     df_analysis = df[[col_status, col_masa_tunggu]].copy()
     df_analysis.columns = ['Status Pekerjaan', 'Masa_Tunggu_Bulan']
+    
+    # Save total respondents for denominator before filtering
+    total_respondents = len(df)
 
     # 2. Filter Data Valid (Hanya yang bekerja/wiraswasta)
     working_status = ['Bekerja (Full time/Part time)', 'Wiraswasta']
@@ -616,7 +623,8 @@ def create_distribution_masa_tunggu_status(df):
     tabel_final = tabel_distribusi[col_ada]
     
     # Apply sorting by Total desc (Rows) and add Percentage
-    return sort_crosstab_by_total(tabel_final)
+    # Using total_respondents as denominator so percentages are relative to ALL alumni
+    return sort_crosstab_by_total(tabel_final, denominator=total_respondents)
 
 def create_distribution_waktu_tunggu_jurusan(df):
     """
@@ -655,18 +663,22 @@ def create_distribution_waktu_tunggu_jurusan(df):
         return pd.DataFrame()
         
     analisis_masa_tunggu = df_filtered.groupby(col_group).agg(
-        Jumlah_Responden=('Masa_Tunggu_Bulan', 'count'),
+        Jumlah_Responden_Bekerja=('Masa_Tunggu_Bulan', 'count'),
         Jumlah_Kurang_6_Bulan=('Is_Less_6_Months', 'sum'),
         Rata_rata_Waktu_Tunggu=('Masa_Tunggu_Bulan', 'mean')
     ).reset_index()
 
-    # 5. Menghitung Persentase
+    # Calculate Total Alumni per Jurusan from unfiltered df
+    total_per_jurusan = df.groupby(col_group).size().reset_index(name='Total_Responden_Alumni')
+    analisis_masa_tunggu = analisis_masa_tunggu.merge(total_per_jurusan, on=col_group, how='left')
+
+    # 5. Menghitung Persentase terhadap TOTAL Alumni
     analisis_masa_tunggu['Persentase_Kurang_6_Bulan'] = (
-        analisis_masa_tunggu['Jumlah_Kurang_6_Bulan'] / analisis_masa_tunggu['Jumlah_Responden'] * 100
-    ) #.round(2) -> will map later
+        analisis_masa_tunggu['Jumlah_Kurang_6_Bulan'] / analisis_masa_tunggu['Total_Responden_Alumni'] * 100
+    )
 
     # Rounding rata-rata waktu tunggu
-    analisis_masa_tunggu['Rata_rata_Waktu_Tunggu'] = analisis_masa_tunggu['Rata_rata_Waktu_Tunggu'].round(1)
+    analisis_masa_tunggu['Rata_rata_Waktu_Tunggu'] = analisis_masa_tunggu['Rata_rata_Waktu_Tunggu'].fillna(0).round(1)
 
     # Sort before renaming
     analisis_masa_tunggu = analisis_masa_tunggu.sort_values(by='Persentase_Kurang_6_Bulan', ascending=False)
@@ -674,7 +686,8 @@ def create_distribution_waktu_tunggu_jurusan(df):
     # 6. Formatting Tabel Akhir
     final_table = analisis_masa_tunggu[[
         'Jurusan', 
-        'Jumlah_Responden', 
+        'Total_Responden_Alumni', 
+        'Jumlah_Responden_Bekerja',
         'Jumlah_Kurang_6_Bulan', 
         'Persentase_Kurang_6_Bulan', 
         'Rata_rata_Waktu_Tunggu'
@@ -683,24 +696,27 @@ def create_distribution_waktu_tunggu_jurusan(df):
     # Rename kolom untuk laporan
     final_table.columns = [
         'Jurusan', 
-        'Total Responden (Bekerja)', 
+        'Total Responden (Alumni)',
+        'Responden Bekerja', 
         'Jumlah Lulusan (<= 6 Bulan)', 
         'Persentase (<= 6 Bulan) (%)', 
         'Rata-rata Masa Tunggu (Bulan)'
     ]
 
     # Tambahkan Baris Total/Rata-rata Institusi
-    total_responden = final_table['Total Responden (Bekerja)'].sum()
+    total_alumni = len(df)
+    responden_bekerja = final_table['Responden Bekerja'].sum()
     jumlah_kurang_6 = final_table['Jumlah Lulusan (<= 6 Bulan)'].sum()
     
     avg_masa_tunggu = df_filtered['Masa_Tunggu_Bulan'].mean() if not df_filtered.empty else 0
 
     total_row = pd.DataFrame({
         'Jurusan': ['TOTAL / RATA-RATA INSTITUSI'],
-        'Total Responden (Bekerja)': [total_responden],
+        'Total Responden (Alumni)': [total_alumni],
+        'Responden Bekerja': [responden_bekerja],
         'Jumlah Lulusan (<= 6 Bulan)': [jumlah_kurang_6],
         'Persentase (<= 6 Bulan) (%)': [
-            (jumlah_kurang_6 / total_responden * 100) if total_responden > 0 else 0
+            (jumlah_kurang_6 / total_alumni * 100) if total_alumni > 0 else 0
         ],
         'Rata-rata Masa Tunggu (Bulan)': [
             round(avg_masa_tunggu, 1)
@@ -998,10 +1014,19 @@ def create_waktu_tunggu_prodi_per_jurusan(df):
 
     # 3. Aggregate by [Jurusan, Prodi]
     analisis = df_filtered.groupby([col_jurusan, col_prodi]).agg(
-        Total_Responden=('Masa_Tunggu_Bulan', 'count'),
+        Jumlah_Responden_Bekerja=('Masa_Tunggu_Bulan', 'count'),
         Jumlah_Kurang_6_Bulan=('Is_Less_6_Months', 'sum'),
         Rata_rata_Waktu_Tunggu=('Masa_Tunggu_Bulan', 'mean')
     ).reset_index()
+
+    # Calculate Total Alumni per Prodi from unfiltered df
+    total_per_prodi = df.groupby([col_jurusan, col_prodi]).size().reset_index(name='Total_Responden_Alumni')
+    analisis = analisis.merge(total_per_prodi, on=[col_jurusan, col_prodi], how='right')
+    
+    # Fill NaN for prodis that might have 0 working respondents
+    analisis['Jumlah_Responden_Bekerja'] = analisis['Jumlah_Responden_Bekerja'].fillna(0)
+    analisis['Jumlah_Kurang_6_Bulan'] = analisis['Jumlah_Kurang_6_Bulan'].fillna(0)
+    analisis['Rata_rata_Waktu_Tunggu'] = analisis['Rata_rata_Waktu_Tunggu'].fillna(0)
 
     # 4. Split by Jurusan
     unique_jurusans = analisis[col_jurusan].unique()
@@ -1010,8 +1035,8 @@ def create_waktu_tunggu_prodi_per_jurusan(df):
     for jurusan in unique_jurusans:
         sub_df = analisis[analisis[col_jurusan] == jurusan].copy()
         
-        # Calculate Percentage
-        sub_df['Persentase (<= 6 Bulan) (%)'] = (sub_df['Jumlah_Kurang_6_Bulan'] / sub_df['Total_Responden'] * 100)
+        # Calculate Percentage relative to TOTAL Alumni
+        sub_df['Persentase (<= 6 Bulan) (%)'] = (sub_df['Jumlah_Kurang_6_Bulan'] / sub_df['Total_Responden_Alumni'] * 100)
         
         # Rounding
         sub_df['Rata_rata_Waktu_Tunggu'] = sub_df['Rata_rata_Waktu_Tunggu'].round(1)
@@ -1025,7 +1050,8 @@ def create_waktu_tunggu_prodi_per_jurusan(df):
         # Select and Rename columns
         final_table = sub_df[[
             col_prodi, 
-            'Total_Responden', 
+            'Total_Responden_Alumni',
+            'Jumlah_Responden_Bekerja',
             'Jumlah_Kurang_6_Bulan', 
             'Persentase (<= 6 Bulan) (%)', 
             'Rata_rata_Waktu_Tunggu'
@@ -1033,24 +1059,27 @@ def create_waktu_tunggu_prodi_per_jurusan(df):
         
         final_table.columns = [
             'Program Studi', 
-            'Total Responden (Bekerja)', 
+            'Total Responden (Alumni)',
+            'Responden Bekerja',
             'Jumlah Lulusan (<= 6 Bulan)', 
             'Persentase (<= 6 Bulan) (%)', 
             'Rata-rata Masa Tunggu (Bulan)'
         ]
 
         # Add Total row for this Jurusan
-        total_resp = final_table['Total Responden (Bekerja)'].sum()
-        total_k6 = final_table['Jumlah Lulusan (<= 6 Bulan)'].sum()
+        total_alumni_jur = final_table['Total Responden (Alumni)'].sum()
+        total_bekerja_jur = final_table['Responden Bekerja'].sum()
+        total_k6_jur = final_table['Jumlah Lulusan (<= 6 Bulan)'].sum()
         
         # Mean for this specific Jurusan
         jur_avg = df_filtered[df_filtered[col_jurusan] == jurusan]['Masa_Tunggu_Bulan'].mean()
 
         total_row = pd.DataFrame({
             'Program Studi': [f'TOTAL {jurusan}'],
-            'Total Responden (Bekerja)': [total_resp],
-            'Jumlah Lulusan (<= 6 Bulan)': [total_k6],
-            'Persentase (<= 6 Bulan) (%)': [f"{(total_k6 / total_resp * 100):.2f}%" if total_resp > 0 else "0.00%"],
+            'Total Responden (Alumni)': [total_alumni_jur],
+            'Responden Bekerja': [total_bekerja_jur],
+            'Jumlah Lulusan (<= 6 Bulan)': [total_k6_jur],
+            'Persentase (<= 6 Bulan) (%)': [f"{(total_k6_jur / total_alumni_jur * 100):.2f}%" if total_alumni_jur > 0 else "0.00%"],
             'Rata-rata Masa Tunggu (Bulan)': [round(jur_avg, 1)]
         })
         
@@ -1676,25 +1705,42 @@ def get_bar_chart_base64(df, title, chart_id, orientation='horizontal'):
     plt.style.use('seaborn-v0_8-whitegrid')
     fig, ax = plt.subplots(figsize=(10, max(5, n_bars * 0.4) if orientation == 'horizontal' else 6))
     
-    cmap = mcolors.LinearSegmentedColormap.from_list("blue_grad", ["#A9A9A9", "#00008B"])
-    norm = plt.Normalize(values.min(), values.max())
-    colors = [cmap(norm(v)) for v in values]
+    max_val = values.max() if not values.empty else 0
+    # Highlight max: DarkBlue, others: LightGrey
+    colors = ['#00008B' if v == max_val and v > 0 else '#D3D3D3' for v in values]
+    # Highlight size: Thicker for max
+    sizes = [0.8 if v == max_val and v > 0 else 0.5 for v in values]
 
     if orientation == 'horizontal':
-        bars = ax.barh(labels, values, color=colors)
+        bars = ax.barh(labels, values, color=colors, height=sizes)
         for bar in bars:
-            ax.text(bar.get_width() + (max(values)*0.01), bar.get_y() + bar.get_height()/2, 
-                    f'{int(bar.get_width())}', va='center', fontsize=9, fontweight='bold')
+            width = bar.get_width()
+            val_text = f'{int(width)}' if np.isfinite(width) else '0'
+            ax.text(width + (max(values)*0.01 if not values.empty else 1), bar.get_y() + bar.get_height()/2, 
+                    val_text, va='center', fontsize=9, fontweight='bold')
     else:
-        bars = ax.bar(labels, values, color=colors)
+        bars = ax.bar(labels, values, color=colors, width=sizes)
         plt.xticks(rotation=45, ha='right')
         for bar in bars:
-            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + (max(values)*0.01), 
-                    f'{int(bar.get_height())}', ha='center', va='bottom', fontsize=9, fontweight='bold')
+            height = bar.get_height()
+            val_text = f'{int(height)}' if np.isfinite(height) else '0'
+            ax.text(bar.get_x() + bar.get_width()/2, height + (max(values)*0.01 if not values.empty else 1), 
+                    val_text, ha='center', va='bottom', fontsize=9, fontweight='bold')
 
     ax.set_title(f"{title}", fontsize=14, fontweight='bold', pad=20)
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
+    
+    # Remove grid and all spines
+    ax.grid(False)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    
+    # Hide tick marks but keep labels
+    ax.tick_params(axis='both', which='both', length=0)
+    
+    if orientation == 'vertical':
+        ax.set_yticks([]) # Hide Y values if vertical, labels are on X
+    else:
+        ax.set_xticks([]) # Hide X values if horizontal, labels are on Y
     
     plt.tight_layout()
     buffer = io.BytesIO()
@@ -1714,12 +1760,10 @@ def get_pie_chart_base64(df, title, chart_id):
     val_col = 'Total' if 'Total' in df_plot.columns else (numeric_cols[-1] if not numeric_cols.empty else None)
     if not val_col: return None
     
+    # Sort by value
     df_plot = df_plot.sort_values(by=val_col, ascending=False)
     
-    if len(df_plot) > 10:
-        top = df_plot.head(9)
-        others = pd.DataFrame({val_col: [df_plot.iloc[9:][val_col].sum()]}, index=['Lainnya'])
-        df_plot = pd.concat([top, others])
+    # Grouping into 'Lainnya' removed per user request to show all categories
 
     values = df_plot[val_col]
     labels = df_plot.index.astype(str)
@@ -1729,16 +1773,39 @@ def get_pie_chart_base64(df, title, chart_id):
     plt.style.use('seaborn-v0_8-whitegrid')
     fig, ax = plt.subplots(figsize=(8, 8))
     
-    colors = plt.cm.Blues(np.linspace(0.4, 0.9, len(values)))
-    wedges, texts, autotexts = ax.pie(values, labels=labels, autopct='%1.1f%%', 
+    max_val = values.max() if not values.empty else 0
+    # Explode only the highest value
+    explode = [0.1 if v == max_val and v > 0 else 0 for v in values]
+    # Highlight colors: DarkBlue for max, LightGrey for others
+    colors = ['#00008B' if v == max_val and v > 0 else '#D3D3D3' for v in values]
+
+    # Prepare display labels (Top 10 only)
+    display_labels = [label if i < 10 else '' for i, label in enumerate(labels)]
+
+    wedges, texts, autotexts = ax.pie(values, labels=display_labels, 
+                                    autopct='%1.1f%%', 
                                     startangle=140, colors=colors, pctdistance=0.85,
+                                    explode=explode,
                                     wedgeprops={'edgecolor': 'white', 'linewidth': 1})
+    
+    # Post-process labels and percentages to hide those beyond Top 10
+    # and adjust colors for visibility
+    for i, (t, at) in enumerate(zip(texts, autotexts)):
+        if i >= 10:
+            t.set_text('')
+            at.set_text('')
+        else:
+            # For Top 10, ensure good contrast
+            if values.iloc[i] == max_val:
+                at.set_color('white') # High contrast on DarkBlue
+            else:
+                at.set_color('black') # High contrast on LightGrey
     
     centre_circle = plt.Circle((0,0), 0.70, fc='white')
     fig.gca().add_artist(centre_circle)
     
-    plt.setp(autotexts, size=9, weight="bold", color="black")
-    plt.setp(texts, size=10)
+    plt.setp(autotexts, size=9, weight="bold")
+    plt.setp(texts, size=10, weight="bold")
     
     ax.set_title(f"{title}", fontsize=14, fontweight='bold', pad=20)
     plt.tight_layout()
@@ -1785,6 +1852,85 @@ def get_line_chart_base64(df, title, chart_id):
 def get_horizontal_bar_chart_base64(df, title):
     """Legacy wrapper for backward compatibility if needed, but we'll use get_bar_chart_base64."""
     return get_bar_chart_base64(df, title, "legacy_bar")
+
+def apply_row_percentages_for_display(df):
+    """
+    Menambahkan persentase dalam kurung untuk setiap sel numerik 
+    berdasarkan total pada baris tersebut.
+    Targeting crosstab-like tables with a 'Total' column.
+    """
+    df_formatted = df.copy()
+    
+    # Identifikasi kolom yang merupakan total baris
+    total_candidates = ['Total', 'Total Responden (Alumni)']
+    total_col = next((c for c in total_candidates if c in df_formatted.columns), None)
+    
+    if total_col is None:
+        return df_formatted
+    
+    # 1. Cari kolom Persentase yang ada (biasanya hasil sort_crosstab_by_total atau sejenisnya)
+    # Cari kolom yang namanya mengandung "persentase" tapi BUKAN metriks khusus 
+    # seperti 'Persentase (<= 6 Bulan) (%)'
+    specific_metrics = ['Persentase (<= 6 Bulan) (%)']
+    pct_col = next((c for c in df_formatted.columns if 'persentase' in str(c).lower() and c not in specific_metrics), None)
+        
+    # 2. Identifikasi kolom yang harus dilewati untuk row-percentages (identitas, metriks khusus, dll)
+    skip_keywords = ['persentase', 'rata-rata', 'skor', 'peringkat', 'tahun', 'id', 'gaji', 'pendapatan', 'predikat']
+    
+    # Kolom numerik untuk row-percentages
+    numeric_cols = []
+    for col in df_formatted.columns:
+        if col == total_col or col == pct_col:
+            continue
+        
+        col_lower = str(col).lower()
+        if any(kw in col_lower for kw in skip_keywords):
+            continue
+            
+        if pd.api.types.is_numeric_dtype(df_formatted[col]):
+            numeric_cols.append(col)
+            
+    # Pastikan total_col numerik untuk kalkulasi
+    df_formatted[total_col] = pd.to_numeric(df_formatted[total_col], errors='coerce').fillna(0)
+
+    # 3. Proses setiap kolom numerik (Row-Relative Percentages)
+    for col in numeric_cols:
+        def row_formatter(row):
+            val = row[col]
+            total = row[total_col]
+            
+            if pd.isna(val):
+                return ""
+            
+            # Jika sel memang angka (termasuk 0)
+            if isinstance(val, (int, float, np.number)):
+                if total > 0:
+                    pct = (val / total) * 100
+                    # Format: "Value (XX.X%)"
+                    # Gunakan integer jika val bulat
+                    val_str = f"{int(val)}" if val == int(val) else f"{val:.1f}"
+                    return f"{val_str} ({pct:.1f}%)"
+                else:
+                    # Menghindari division by zero atau total 0
+                    return f"{val} (0.0%)"
+            return str(val)
+                
+        df_formatted[col] = df_formatted.apply(row_formatter, axis=1)
+
+    # 4. Gabungkan kolom Persentase ke dalam kolom Total jika ada
+    if pct_col:
+        def total_formatter(row):
+            val = row[total_col]
+            pct = row[pct_col]
+            if pd.isna(val): return ""
+            val_str = f"{int(val)}" if val == int(val) else f"{val:.1f}"
+            # Kadang pct sudah ada tanda % atau format string
+            return f"{val_str} ({pct})"
+            
+        df_formatted[total_col] = df_formatted.apply(total_formatter, axis=1)
+        df_formatted.drop(columns=[pct_col], inplace=True)
+        
+    return df_formatted
 
 def generate_html_report(data_dict, output_file='report_tables.html'):
     """
@@ -1987,7 +2133,10 @@ def generate_html_report(data_dict, output_file='report_tables.html'):
         html_content += '</div>'
         
         if df is not None:
-            df_to_html = df.reset_index() if df.index.name else df.copy()
+            # Apply Row-Relative Percentages
+            df_display = apply_row_percentages_for_display(df)
+            
+            df_to_html = df_display.reset_index() if df_display.index.name else df_display.copy()
             df_to_html.columns.name = None
             table_html = df_to_html.to_html(index=False, border=0, classes='table', table_id=table_id, escape=False)
             if f'id="{table_id}"' not in table_html:
