@@ -13,7 +13,10 @@ from viz_lokasi_kampus import create_distribution_campus_loc_tahun
 from viz_distribusi_jurusan_prodi import create_distribution_jurusan_tahun, create_distribution_prodi_tahun
 from viz_distribusi_masa_tunggu import (
     create_distribution_masa_tunggu_status, create_distribution_waktu_tunggu_jurusan,
-    create_waktu_tunggu_prodi_per_jurusan, create_masa_tunggu_prodi_per_jurusan
+    create_waktu_tunggu_prodi_per_jurusan, create_masa_tunggu_prodi_per_jurusan,
+    get_masa_tunggu_jurusan_line_chart_base64,
+    create_table_masa_tunggu_lt6_jurusan, create_table_masa_tunggu_lt6_prodi,
+    get_shaded_line_chart_base64, get_masa_tunggu_lt6_facet_grid_base64
 )
 from viz_serapan_lulusan import create_serapan_jurusan, create_serapan_prodi_per_jurusan
 from viz_serapan_alumni_wilayah import create_distribution_provinsi, generate_alumni_map
@@ -75,7 +78,7 @@ if __name__ == "__main__":
             if pilihan in ['1', '4']:
                 df_masa_tunggu = create_distribution_masa_tunggu_status(df_load)
                 if not df_masa_tunggu.empty:
-                    charts_list = get_all_charts(df_masa_tunggu, "Masa Tunggu", "masa_tunggu")
+                    charts_list = []
                     trend_chart_b64 = get_smooth_trend_chart_base64(df_load, "Trend Waktu Diterima Bekerja (Bulan)", "masa_tunggu_trend")
                     if trend_chart_b64:
                         charts_list.append({"id": "masa_tunggu_trend", "name": "Trend Chart", "base64": trend_chart_b64})
@@ -83,20 +86,16 @@ if __name__ == "__main__":
                     
                 df_waktu_tunggu = create_distribution_waktu_tunggu_jurusan(df_load)
                 if not df_waktu_tunggu.empty:
-                    df_wt_chart = df_waktu_tunggu.set_index('Jurusan').copy()
-                    charts_wt = get_all_charts(df_wt_chart, "Masa Tunggu per Jurusan", "wt_jurusan")
-                    new_charts_wt = []
-                    for c in charts_wt:
-                        if c["id"] == "wt_jurusan_bar":
-                            global_line = get_waktu_tunggu_global_smooth_line_chart_base64(df_load, "Distribusi Waktu Tunggu (Global)", "wt_jurusan_global_line")
-                            if global_line:
-                                new_charts_wt.append({"id": "wt_jurusan_global_line", "name": "Line Chart Global", "base64": global_line})
-                            facet_line = get_waktu_tunggu_facet_smooth_line_chart_base64(df_load, "Distribusi Waktu Tunggu per Jurusan", "wt_jurusan_facet_line")
-                            if facet_line:
-                                new_charts_wt.append({"id": "wt_jurusan_facet_line", "name": "Facet Line Chart", "base64": facet_line})
-                        else:
-                            new_charts_wt.append(c)
-                    charts_wt = new_charts_wt
+                    charts_wt = []
+                    global_line = get_waktu_tunggu_global_smooth_line_chart_base64(df_load, "Distribusi Waktu Tunggu (Global)", "wt_jurusan_global_line")
+                    if global_line:
+                        charts_wt.append({"id": "wt_jurusan_global_line", "name": "Line Chart Global", "base64": global_line})
+                    facet_line = get_waktu_tunggu_facet_smooth_line_chart_base64(df_load, "Distribusi Waktu Tunggu per Jurusan", "wt_jurusan_facet_line")
+                    if facet_line:
+                        charts_wt.append({"id": "wt_jurusan_facet_line", "name": "Facet Line Chart", "base64": facet_line})
+                    avg_wt_line = get_masa_tunggu_jurusan_line_chart_base64(df_load)
+                    if avg_wt_line:
+                        charts_wt.append({"id": "wt_jurusan_avg_line", "name": "Line Chart Rata-rata Masa Tunggu", "base64": avg_wt_line})
                     dfs_to_report["Rata-rata Masa Tunggu Lulusan per Jurusan"] = {"df": df_waktu_tunggu, "charts": charts_wt}
                     
                     dict_waktu_tunggu_prodi = create_waktu_tunggu_prodi_per_jurusan(df_load)
@@ -106,13 +105,38 @@ if __name__ == "__main__":
                 dict_masa_tunggu_prodi = create_masa_tunggu_prodi_per_jurusan(df_load)
                 for table_title, df_jur in dict_masa_tunggu_prodi.items():
                     pfx = table_title.replace(" ", "_").lower()
-                    df_c = df_jur.set_index('Program Studi')
-                    charts_list = get_all_charts(df_c, table_title, pfx)
                     jurusan = table_title.split(" - ")[-1]
+                    charts_list = []
                     facet_chart = get_waktu_tunggu_prodi_facet_smooth_line_chart_base64(df_load, f"Distribusi Waktu Tunggu per Prodi - {jurusan}", f"{pfx}_facet", jurusan=jurusan)
                     if facet_chart:
                         charts_list.append({"id": f"{pfx}_facet", "name": "Facet Line Chart", "base64": facet_chart})
                     dfs_to_report[table_title] = {"df": df_jur, "charts": charts_list}
+                    
+                # --- Masa Tunggu <= 6 Bulan Section ---
+                df_lt6_jur = create_table_masa_tunggu_lt6_jurusan(df_load)
+                if not df_lt6_jur.empty:
+                    chart_lt6 = get_shaded_line_chart_base64(df_lt6_jur, 'Jurusan', "Persentase Lulusan Masa Tunggu <= 6 Bulan per Jurusan", "lt6_jurusan_shaded")
+                    charts = []
+                    if chart_lt6:
+                        charts.append({"id": "lt6_jurusan_shaded", "name": "Shaded Line Chart", "base64": chart_lt6})
+                    dfs_to_report["Lulusan dengan Masa Tunggu <= 6 Bulan per Jurusan"] = {"df": df_lt6_jur.drop(columns=['_pct_numeric']), "charts": charts}
+                    
+                dict_lt6_prodi = create_table_masa_tunggu_lt6_prodi(df_load)
+                
+                # Create Facet Grid for all Prodi breakdowns
+                facet_grid_base64 = get_masa_tunggu_lt6_facet_grid_base64(dict_lt6_prodi, "Breakdown Masa Tunggu <= 6 Bulan per Program Studi")
+                
+                for table_title, df_prodi_lt6 in dict_lt6_prodi.items():
+                    pfx = table_title.replace(" ", "_").lower()
+                    charts = []
+                    
+                    dfs_to_report[table_title] = {"df": df_prodi_lt6.drop(columns=['_pct_numeric']), "charts": charts}
+                
+                if facet_grid_base64:
+                    dfs_to_report["Grafik Breakdown Masa Tunggu <= 6 Bulan (All Departments)"] = {
+                        "df": pd.DataFrame(), 
+                        "charts": [{"id": "lt6_prodi_facet", "name": "Facet Grid Chart (4x2)", "base64": facet_grid_base64}]
+                    }
                     
             if pilihan in ['1', '5']:
                 df_serapan_jurusan = create_serapan_jurusan(df_load)

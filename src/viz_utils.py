@@ -880,14 +880,22 @@ def apply_row_percentages_for_display(df):
         if pd.api.types.is_numeric_dtype(df_formatted[col]):
             numeric_cols.append(col)
             
+    # Cek apakah kolom Total sudah di-format sebagai string (mengandung '(')
+    if not df_formatted[total_col].empty and isinstance(df_formatted[total_col].iloc[0], str) and '(' in df_formatted[total_col].iloc[0]:
+        return df_formatted
+        
     # Pastikan total_col numerik untuk kalkulasi
     df_formatted[total_col] = pd.to_numeric(df_formatted[total_col], errors='coerce').fillna(0)
 
-    # 3. Proses setiap kolom numerik (Row-Relative Percentages)
+    # Check for institutional total in attributes (for global tables)
+    inst_total = df.attrs.get('institutional_total') if hasattr(df, 'attrs') else None
+
+    # 3. Proses setiap kolom numerik (Row-Relative or Global-Relative Percentages)
     for col in numeric_cols:
         def row_formatter(row):
             val = row[col]
-            total = row[total_col]
+            # Use institutional total if provided, otherwise use row total
+            total = inst_total if inst_total is not None else row[total_col]
             
             if pd.isna(val):
                 return ""
@@ -1020,10 +1028,16 @@ def generate_html_report(data_dict, output_file='report_tables.html'):
                 border-left: 1px solid #e2e8f0;
                 background-color: #3498db; 
                 color: #fff;
+                width: 100px;
+                min-width: 100px;
+                text-align: center;
             }
             td:last-child {
                 border-left: 1px solid #f1f5f9;
                 background-color: #f8fafc;
+                width: 100px;
+                min-width: 100px;
+                text-align: center;
             }
             
              /* Intersection of Total Row and Column (Optional) */

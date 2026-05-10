@@ -28,7 +28,7 @@ def create_distribution_provinsi(df):
         return pd.DataFrame()
         
     # Hitung Jumlah per Provinsi
-    prov_counts = df_working[col_prov].value_counts().reset_index()
+    prov_counts = df_working[col_prov].fillna('Belum Mengisi').value_counts().reset_index()
     prov_counts.columns = ['Provinsi', 'Jumlah']
     
     # Add coordinates for reference if needed, but for table display, just simple is fine

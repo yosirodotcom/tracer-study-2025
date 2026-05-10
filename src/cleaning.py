@@ -104,7 +104,7 @@ print("\n--- Fixing Inconsistent Data ---")
 rows_before = len(df)
 
 # Identify the rows
-mask_inconsistent = (df['Jurusan'] == 'Ilmu Kelautan dan Perikanan') & (df['prodi'] == 'Teknik Sipil')
+mask_inconsistent = (df['Jurusan'] == 'Ilmu Kelautan dan Perikanan') & (df['prodi'].str.contains('Teknik Sipil', na=False))
 inconsistent_count = mask_inconsistent.sum()
 print(f"Found {inconsistent_count} inconsistent rows to fix.")
 

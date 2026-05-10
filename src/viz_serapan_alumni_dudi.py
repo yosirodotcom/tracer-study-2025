@@ -38,7 +38,7 @@ def create_distribution_kabkota_kalbar(df):
         return pd.DataFrame()
 
     # Count by City
-    city_counts = df_kalbar[col_city].value_counts().reset_index()
+    city_counts = df_kalbar[col_city].fillna('Belum Mengisi').value_counts().reset_index()
     city_counts.columns = ['Kota/Kabupaten', 'Jumlah Responden']
     
     # Calculate Percentage
