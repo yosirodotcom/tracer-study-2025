@@ -5,8 +5,10 @@ from viz_utils import (
     get_all_charts, get_smooth_trend_chart_base64,
     get_waktu_tunggu_global_smooth_line_chart_base64,
     get_waktu_tunggu_facet_smooth_line_chart_base64,
+   
     get_waktu_tunggu_prodi_facet_smooth_line_chart_base64,
     generate_html_report
+
 )
 
 from viz_lokasi_kampus import create_distribution_campus_loc_tahun
@@ -18,7 +20,11 @@ from viz_distribusi_masa_tunggu import (
     create_table_masa_tunggu_lt6_jurusan, create_table_masa_tunggu_lt6_prodi,
     get_shaded_line_chart_base64, get_masa_tunggu_lt6_facet_grid_base64
 )
-from viz_serapan_lulusan import create_serapan_jurusan, create_serapan_prodi_per_jurusan
+from viz_serapan_lulusan import (
+    create_serapan_jurusan, create_serapan_prodi_per_jurusan,
+    get_serapan_global_pie_chart_base64, get_serapan_divergence_chart_base64,
+    get_serapan_prodi_facet_pie_chart_base64, create_serapan_prodi_ranked_table
+)
 from viz_serapan_alumni_wilayah import create_distribution_provinsi, generate_alumni_map
 from viz_serapan_alumni_dudi import create_distribution_kabkota_kalbar, generate_kalbar_map
 from viz_pendapatan_gaji import create_salary_distribution, create_salary_by_jurusan, create_salary_prodi_per_jurusan
@@ -141,7 +147,31 @@ if __name__ == "__main__":
             if pilihan in ['1', '5']:
                 df_serapan_jurusan = create_serapan_jurusan(df_load)
                 if not df_serapan_jurusan.empty:
-                    dfs_to_report["Serapan Lulusan per Jurusan"] = {"df": df_serapan_jurusan, "charts": get_all_charts(df_serapan_jurusan, "Serapan Jurusan", "serapan_jurusan")}
+                    charts_serapan = get_all_charts(df_serapan_jurusan, "Serapan Jurusan", "serapan_jurusan")
+                    global_pie = get_serapan_global_pie_chart_base64(df_load)
+                    if global_pie:
+                        charts_serapan.append({"id": "serapan_global_pie", "name": "Global Pie Chart", "base64": global_pie})
+                    
+                    dfs_to_report["Serapan Lulusan per Jurusan"] = {"df": df_serapan_jurusan, "charts": charts_serapan}
+                
+                # Divergence Chart for all Program Studi
+                div_chart = get_serapan_divergence_chart_base64(df_load)
+                if div_chart:
+                    dfs_to_report["Perbandingan Serapan Lulusan per Program Studi (%)"] = {
+                        "df": pd.DataFrame(), 
+                        "charts": [{"id": "serapan_divergence_all", "name": "Divergence Chart", "base64": div_chart}]
+                    }
+                
+                # Ranked Table for all Program Studi
+                df_ranked_prodi = create_serapan_prodi_ranked_table(df_load, apply_fair_sort=True)
+                
+                # Facet Pie Chart (Stacked Bar) for all Program Studi
+                facet_pie_chart = get_serapan_prodi_facet_pie_chart_base64(df_load)
+                if facet_pie_chart:
+                    dfs_to_report["Distribusi Persentase Serapan Lulusan per Program Studi"] = {
+                        "df": df_ranked_prodi, 
+                        "charts": [{"id": "serapan_prodi_facet_pie", "name": "Stacked Bar Chart", "base64": facet_pie_chart}]
+                    }
                     
                 dict_serapan_prodi = create_serapan_prodi_per_jurusan(df_load)
                 for jurusan_name, df_jur in dict_serapan_prodi.items():

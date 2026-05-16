@@ -136,13 +136,13 @@ def generate_static_map_geopandas(df_counts, output_path, region_name='Indonesia
                  gdf_merged.plot(column='Jumlah',
                                  ax=ax,
                                  legend=True,
-                                 legend_kwds={'label': "Jumlah Alumni", 'orientation': "horizontal"},
+                                 legend_kwds={'label': "Jumlah Alumni", 'orientation': "horizontal", 'location': "top", 'shrink': 0.6},
                                  cmap='Blues',
                                  edgecolor='black',
                                  linewidth=0.5,
                                  missing_kwds={'color': 'lightgrey'})
                                  
-                 ax.set_title(f"Sebaran Alumni - {region_name} (Choropleth)", fontsize=16)
+                 # ax.set_title(f"Sebaran Alumni - {region_name} (Choropleth)", fontsize=16)
                  ax.axis('off')
                  
                  plt.tight_layout()
@@ -248,7 +248,7 @@ def generate_static_map_geopandas(df_counts, output_path, region_name='Indonesia
              gdf_others.plot(column='Jumlah Responden',
                              ax=ax,
                              legend=True,
-                             legend_kwds={'label': "Jumlah Alumni (Non-Pontianak)", 'orientation': "vertical"},
+                             legend_kwds={'label': "Jumlah Alumni (Non-Pontianak)", 'orientation': "horizontal", 'location': "top", 'shrink': 0.6},
                              cmap=cmap_custom,
                              edgecolor='black',
                              linewidth=0.5,
@@ -273,10 +273,11 @@ def generate_static_map_geopandas(df_counts, output_path, region_name='Indonesia
                  
                  # Get Name (use original kabkot from GeoJSON or cleaned)
                  name = row.get('kabkot', '')
+                 val_count = row.get('Jumlah Responden', 0)
                  val_pct = row.get('pct', 0)
                  
-                 # Format Label: "Name\n(X.X%)"
-                 label = f"{name}\n({val_pct:.1f}%)"
+                 # Format Label: "Name\nCount (X.X%)"
+                 label = f"{name}\n{int(val_count)} ({val_pct:.1f}%)"
                  
                  # Add Text
                  # Use white halo for readability
@@ -285,7 +286,7 @@ def generate_static_map_geopandas(df_counts, output_path, region_name='Indonesia
                              fontsize=8, color='black', weight='bold',
                              path_effects=[matplotlib.patheffects.withStroke(linewidth=2, foreground="white")])
 
-             ax.set_title("Sebaran Alumni - Kalimantan Barat", fontsize=16)
+             # ax.set_title("Sebaran Alumni - Kalimantan Barat", fontsize=16)
              ax.axis('off')
              
              plt.tight_layout()
@@ -374,11 +375,11 @@ def generate_static_map_geopandas(df_counts, output_path, region_name='Indonesia
     if region_name == 'Kalimantan Barat':
         ax.set_xlim(108.0, 114.5)
         ax.set_ylim(-3.5, 2.5)
-        ax.set_title(f"Sebaran Alumni - {region_name}", fontsize=16)
+        # ax.set_title(f"Sebaran Alumni - {region_name}", fontsize=16)
     else:
         ax.set_xlim(95, 141)
         ax.set_ylim(-11, 6)
-        ax.set_title(f"Sebaran Alumni - {region_name}", fontsize=16)
+        # ax.set_title(f"Sebaran Alumni - {region_name}", fontsize=16)
     
     # Plot Points (Bubble)
     # Size based on value
@@ -398,7 +399,8 @@ def generate_static_map_geopandas(df_counts, output_path, region_name='Indonesia
                     alpha=0.7,
                     edgecolor='k',
                     linewidth=0.5,
-                    legend=True)
+                    legend=True,
+                    legend_kwds={'orientation': "horizontal", 'location': "top", 'shrink': 0.6})
 
     ax.axis('off')
     
@@ -667,19 +669,20 @@ def get_pie_chart_base64(df, title, chart_id):
     fig, ax = plt.subplots(figsize=(8, 8))
     
     max_val = values.max() if not values.empty else 0
-    # Explode only the highest value
-    explode = [0.1 if v == max_val and v > 0 else 0 for v in values]
+    # Explode only the highest value - reduced from 0.1 to 0.05 for better symmetry
+    explode = [0.05 if v == max_val and v > 0 else 0 for v in values]
     # Highlight colors: DarkBlue for max, LightGrey for others
     colors = ['#00008B' if v == max_val and v > 0 else '#D3D3D3' for v in values]
 
     # Prepare display labels (Top 10 only)
     display_labels = [label if i < 10 else '' for i, label in enumerate(labels)]
 
+    # Use width in wedgeprops for a consistent donut ring thickness
     wedges, texts, autotexts = ax.pie(values, labels=display_labels, 
                                     autopct='%1.1f%%', 
                                     startangle=140, colors=colors, pctdistance=0.85,
                                     explode=explode,
-                                    wedgeprops={'edgecolor': 'white', 'linewidth': 1})
+                                    wedgeprops={'edgecolor': 'white', 'linewidth': 1, 'width': 0.3})
     
     # Post-process labels and percentages to hide those beyond Top 10
     # and adjust colors for visibility
@@ -694,8 +697,7 @@ def get_pie_chart_base64(df, title, chart_id):
             else:
                 at.set_color('black') # High contrast on LightGrey
     
-    centre_circle = plt.Circle((0,0), 0.70, fc='white')
-    fig.gca().add_artist(centre_circle)
+    ax.axis('equal') # Ensure the pie is drawn as a circle
     
     plt.setp(autotexts, size=9, weight="bold")
     plt.setp(texts, size=10, weight="bold")
@@ -993,7 +995,7 @@ def generate_html_report(data_dict, output_file='report_tables.html'):
                 box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             }
             th, td {
-                padding: 12px 15px;
+                padding: 10px 12px;
                 text-align: left;
                 border-bottom: 1px solid #edf2f7;
             }
@@ -1002,8 +1004,19 @@ def generate_html_report(data_dict, output_file='report_tables.html'):
                 color: #fff;
                 font-weight: 600;
                 text-transform: uppercase;
-                font-size: 0.85rem;
+                font-size: 0.75rem;
                 letter-spacing: 0.5px;
+                white-space: normal; /* Allow header text to wrap */
+                min-width: 60px;
+                max-width: 100px; /* Tight width forces multi-word headers to stack */
+                word-wrap: break-word;
+                hyphens: auto;
+                vertical-align: middle;
+                text-align: center;
+            }
+            td {
+                white-space: nowrap; /* Prevent data values from wrapping */
+                font-size: 0.85rem;
             }
             tr:last-child td {
                 border-bottom: none;
@@ -1028,15 +1041,15 @@ def generate_html_report(data_dict, output_file='report_tables.html'):
                 border-left: 1px solid #e2e8f0;
                 background-color: #3498db; 
                 color: #fff;
-                width: 100px;
-                min-width: 100px;
+                width: 1%; /* Force to fit content exactly */
+                white-space: nowrap;
                 text-align: center;
             }
             td:last-child {
                 border-left: 1px solid #f1f5f9;
                 background-color: #f8fafc;
-                width: 100px;
-                min-width: 100px;
+                width: 1%; /* Force to fit content exactly */
+                white-space: nowrap;
                 text-align: center;
             }
             
@@ -1489,6 +1502,365 @@ def get_waktu_tunggu_prodi_facet_smooth_line_chart_base64(df, title, chart_id, j
     
     plt.tight_layout()
     import io, base64
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    return base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+
+def get_divergence_chart_base64(labels, values_left, values_right, title, label_left, label_right, is_percentage=True):
+    """
+    Generates a divergence (bidirectional) bar chart.
+    Supports stacked bars on the left side if values_left is a list of lists.
+    Values should be positive; left side will be plotted as negative for divergence.
+    """
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    n_labels = len(labels)
+    if n_labels == 0: return None
+    
+    # Style
+    plt.style.use('seaborn-v0_8-whitegrid')
+    fig, ax = plt.subplots(figsize=(12, max(6, n_labels * 0.5)))
+    
+    y_pos = np.arange(n_labels)
+    
+    # Colors per user request:
+    # Left stacked: Bekerja (DarkBlue), Wiraswasta (DarkGrey)
+    # Right: Sedang Mencari Kerja (LightYellow)
+    color_bekerja = '#00008B'
+    color_wiraswasta = '#696969' # Dark Grey
+    color_searching = '#FFFFE0' # Light Yellow
+    
+    # Plotting Left Side (Stacked)
+    if isinstance(values_left, list) and len(values_left) > 0 and isinstance(values_left[0], list):
+        # Stacked logic
+        vals_bekerja = np.array(values_left[0])
+        vals_wiraswasta = np.array(values_left[1])
+        
+        # Plot Wiraswasta first (base), then Bekerja on top (further left)
+        # Note: negative values for divergence
+        bars_wiraswasta = ax.barh(y_pos, -vals_wiraswasta, color=color_wiraswasta, edgecolor='white', linewidth=0.5)
+        bars_bekerja = ax.barh(y_pos, -vals_bekerja, left=-vals_wiraswasta, color=color_bekerja, edgecolor='white', linewidth=0.5)
+        
+        # Add labels inside left bars
+        for i in range(n_labels):
+            # Label for Wiraswasta
+            if vals_wiraswasta[i] > 0:
+                ax.text(-vals_wiraswasta[i]/2, i, f'{int(vals_wiraswasta[i])}', 
+                        va='center', ha='center', fontsize=8, fontweight='bold', color='white')
+            # Label for Bekerja
+            if vals_bekerja[i] > 0:
+                ax.text(-(vals_wiraswasta[i] + vals_bekerja[i]/2), i, f'{int(vals_bekerja[i])}', 
+                        va='center', ha='center', fontsize=8, fontweight='bold', color='white')
+        
+        max_left = (vals_bekerja + vals_wiraswasta).max()
+        label_left_final = f"{label_left[0]} (Biru) & {label_left[1]} (Abu)"
+    else:
+        # Simple left bar (fallback)
+        bars_left = ax.barh(y_pos, [-v for v in values_left], color=color_bekerja, edgecolor='grey', linewidth=0.5)
+        for i, bar in enumerate(bars_left):
+            val = values_left[i]
+            if val > 0:
+                ax.text(-val/2, i, f'{int(val)}', va='center', ha='center', fontsize=8, fontweight='bold', color='white')
+        max_left = max(values_left) if any(values_left) else 0
+        label_left_final = label_left
+
+    # Plotting Right Side
+    bars_right = ax.barh(y_pos, values_right, color=color_searching, edgecolor='grey', linewidth=0.5)
+    for i, bar in enumerate(bars_right):
+        val = values_right[i]
+        if val > 0:
+            val_str = f'{val:.1f}%' if is_percentage else f'{int(val)}'
+            # Place searching label inside if it's large enough, or just outside
+            ax.text(val + 0.5, i, val_str, va='center', ha='left', fontsize=9, fontweight='bold', color='black')
+
+    ax.set_yticks(y_pos)
+    # Highlight labels that have the (100%) marker (100% absorption)
+    ax.set_yticklabels(labels, fontweight='bold')
+    
+    # Calculate limits first so we can use it for arrow placement
+    max_right = max(values_right) if any(values_right) else 0
+    limit = max(max_left, max_right) + (max(max_left, max_right) * 0.15 if max(max_left, max_right) > 0 else 10)
+    ax.set_xlim(-limit, limit)
+
+    # Apply specific colors to tick labels and add arrows
+    for i, label in enumerate(labels):
+        if "(100%)" in label:
+            ax.get_yticklabels()[i].set_color('#0000CD') # MediumBlue
+            ax.get_yticklabels()[i].set_fontsize(10)
+            
+            # Add red arrow pointing from label to the bar
+            # Get the tip of the left bar
+            if isinstance(values_left, list) and len(values_left) > 0 and isinstance(values_left[0], list):
+                val_total = values_left[0][i] + values_left[1][i]
+            else:
+                val_total = values_left[i]
+            
+            # x_start is near the left edge (label area), x_end is the bar tip
+            # Arrow target: tip of the bar (negative x)
+            # Arrow source: at the -limit boundary where labels are
+            if val_total > 0:
+                ax.annotate('', 
+                            xy=(-val_total, i), 
+                            xytext=(-limit, i),
+                            arrowprops=dict(arrowstyle='-|>', color='red', lw=2, mutation_scale=15))
+    
+    from matplotlib.ticker import FuncFormatter
+    if is_percentage:
+        ax.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: f'{abs(x):.0f}%'))
+    else:
+        ax.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: f'{int(abs(x))}'))
+    
+    ax.set_title(title, fontsize=16, fontweight='bold', pad=45)
+    
+    # Place labels berkesesuaian dengan posisi chart gradient
+    ax.text(0.25, 1.02, label_left_final, transform=ax.transAxes, ha='center', va='bottom', 
+            fontsize=12, fontweight='bold', color=color_bekerja) 
+    
+    ax.text(0.75, 1.02, label_right, transform=ax.transAxes, ha='center', va='bottom', 
+            fontsize=12, fontweight='bold', color='#B8860B') 
+    
+    # Remove grid and spines
+    ax.grid(False) 
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    
+    # Vertical line at center
+    ax.axvline(0, color='black', linewidth=1, alpha=0.5)
+    
+    plt.tight_layout()
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    return base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+
+def get_stacked_bar_chart_base64(df, title, chart_id, is_percentage=True, orientation='vertical'):
+    """
+    Generates a stacked bar chart and returns it as a base64 string.
+    df: index is the category (e.g. Prodi), columns are the statuses.
+    """
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import io
+    import base64
+    import textwrap
+
+    df_plot = df.copy()
+    
+    # Robustly remove Total rows/columns if they exist
+    rows_to_drop = [i for i in df_plot.index if 'total' in str(i).lower()]
+    if rows_to_drop: df_plot = df_plot.drop(index=rows_to_drop)
+    
+    cols_to_drop = [c for c in df_plot.columns if 'total' in str(c).lower()]
+    if cols_to_drop: df_plot = df_plot.drop(columns=cols_to_drop)
+
+    # Wrap Program Studi Names
+    df_plot.index = [textwrap.fill(str(l), width=25) for l in df_plot.index]
+
+    # Capture totals before normalizing to 100%
+    totals = df_plot.sum(axis=1)
+
+    if is_percentage:
+        # Normalize to 100%
+        # Avoid division by zero
+        df_plot = df_plot.div(totals.replace(0, 1), axis=0) * 100
+
+    # Define consistent colors
+    color_map = {
+        "Bekerja": "#00008B",              # DarkBlue
+        "Wiraswasta": "#696969",            # DarkGrey
+        "Sedang Mencari Kerja": "#B8860B",  # Darkish Yellow
+        "Studi Lanjut": "#4682B4",          # SteelBlue
+        "Belum Memungkinkan Bekerja": "#D3D3D3", # LightGrey
+        "Tidak Mencari Kerja": "#A9A9A9"    # DarkGray
+    }
+    
+    # Get colors for columns present in df
+    colors = [color_map.get(col, '#D3D3D3') for col in df_plot.columns]
+
+    plt.style.use('seaborn-v0_8-whitegrid')
+    
+    if orientation == 'horizontal':
+        # Flip to match top-to-bottom reading
+        df_plot = df_plot.iloc[::-1] 
+        totals_sorted = totals.iloc[::-1]
+        
+        # multiplier 0.5 increases the gap slightly compared to 0.4
+        fig, ax = plt.subplots(figsize=(14, max(6, len(df_plot) * 0.5)))
+        # width=0.85 increases thickness (increased by 0.3 from 0.55)
+        bars_plot = df_plot.plot(kind='barh', stacked=True, ax=ax, color=colors, edgecolor='white', linewidth=0.5, width=0.85)
+        
+        if is_percentage:
+            ax.set_xlabel("Persentase (%)", fontsize=12)
+            ax.set_xlim(0, 115) # Add space for labels
+        else:
+            ax.set_xlabel("Jumlah", fontsize=12)
+            
+        # Add labels next to bars
+        for i, (idx, total) in enumerate(totals_sorted.items()):
+            x_pos = 101 if is_percentage else total + 0.5
+            ax.text(x_pos, i, f'(N={int(total)})', va='center', ha='left', fontsize=9, fontweight='bold', color='#333')
+
+        # Add values inside bars
+        for c in ax.containers:
+            # Only show if value is > 5% to avoid clutter
+            labels = [f'{v:.0f}%' if v > 5 else '' for v in c.datavalues] if is_percentage else [f'{int(v)}' if v > 0 else '' for v in c.datavalues]
+            ax.bar_label(c, labels=labels, label_type='center', fontsize=9, color='white', fontweight='bold')
+
+    else:
+        # Dynamic width based on number of items
+        width_fig = max(12, len(df_plot) * 0.4)
+        fig, ax = plt.subplots(figsize=(width_fig, 9))
+        # width=0.85 increases thickness
+        bars_plot = df_plot.plot(kind='bar', stacked=True, ax=ax, color=colors, edgecolor='white', linewidth=0.5, width=0.85)
+        
+        if is_percentage:
+            ax.set_ylabel("Persentase (%)", fontsize=12)
+            ax.set_ylim(0, 115) # Add space for labels
+        else:
+            ax.set_ylabel("Jumlah", fontsize=12)
+        plt.xticks(rotation=45, ha='right', fontsize=10)
+        
+        # Add labels on top of bars
+        for i, (idx, total) in enumerate(totals.items()):
+            y_pos = 101 if is_percentage else total + 0.5
+            ax.text(i, y_pos, f'N={int(total)}', ha='center', va='bottom', fontsize=9, fontweight='bold', color='#333', rotation=90)
+
+        # Add values inside bars
+        for c in ax.containers:
+            labels = [f'{v:.0f}%' if v > 5 else '' for v in c.datavalues] if is_percentage else [f'{int(v)}' if v > 0 else '' for v in c.datavalues]
+            ax.bar_label(c, labels=labels, label_type='center', fontsize=9, color='white', fontweight='bold')
+    
+    # Remove grid
+    ax.grid(False)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+
+    ax.legend(title="Status Pekerjaan", loc='lower center', bbox_to_anchor=(0.5, 1.02), 
+              ncol=min(3, len(df_plot.columns)), fontsize=10, frameon=True)
+    
+    plt.tight_layout()
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    return base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+
+def get_facet_pie_chart_base64(data_dict, title, n_cols=6):
+    """
+    Generates a facet grid of pie charts with a global legend.
+    data_dict: { "Facet Title": pd.Series/pd.DataFrame (counts) }
+    """
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import math
+
+    n_items = len(data_dict)
+    if n_items == 0: return None
+    
+    n_rows = math.ceil(n_items / n_cols)
+    
+    # Define consistent colors for common categories
+    color_map = {
+        "Bekerja": "#00008B",              # DarkBlue
+        "Wiraswasta": "#696969",            # DarkGrey
+        "Sedang Mencari Kerja": "#B8860B",  # Darkish Yellow
+        "Studi Lanjut": "#4682B4",          # SteelBlue
+        "Belum Memungkinkan Bekerja": "#D3D3D3", # LightGrey
+        "Tidak Mencari Kerja": "#A9A9A9"    # DarkGray
+    }
+    
+    import matplotlib as mpl
+    fallback_colors = mpl.colormaps.get_cmap('Pastel1').colors
+
+    plt.style.use('seaborn-v0_8-whitegrid')
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(3 * n_cols, 3 * n_rows + 1))
+    
+    if n_rows == 1 and n_cols == 1:
+        axes_list = [axes]
+    else:
+        axes_list = axes.flatten()
+    
+    # Collect all unique labels
+    all_labels = set()
+    for df in data_dict.values():
+        if isinstance(df, pd.DataFrame):
+            # Assume first column is count if multi-column
+            all_labels.update(df.index.astype(str))
+        else:
+            all_labels.update(df.index.astype(str))
+    
+    sorted_labels = sorted(list(all_labels))
+    label_colors = {}
+    for i, label in enumerate(sorted_labels):
+        if label in color_map:
+            label_colors[label] = color_map[label]
+        else:
+            label_colors[label] = fallback_colors[i % len(fallback_colors)]
+
+    for i, (facet_title, df) in enumerate(data_dict.items()):
+        ax = axes_list[i]
+        
+        if isinstance(df, pd.DataFrame):
+            # Identify count column
+            num_cols = df.select_dtypes(include=[np.number]).columns
+            if not num_cols.empty:
+                values = df[num_cols[0]].values
+                labels = df.index.astype(str)
+            else:
+                ax.axis('off')
+                continue
+        else:
+            values = df.values
+            labels = df.index.astype(str)
+        
+        if len(values) == 0 or sum(values) == 0:
+            ax.text(0.5, 0.5, "No Data", ha='center', va='center', fontsize=8)
+            ax.axis('off')
+            continue
+            
+        colors = [label_colors[l] for l in labels]
+        
+        # Donut Style
+        wedges, texts, autotexts = ax.pie(values, 
+                                        autopct='%1.0f%%', 
+                                        startangle=140, 
+                                        colors=colors,
+                                        pctdistance=0.75,
+                                        wedgeprops={'edgecolor': 'white', 'linewidth': 0.5, 'width': 0.4})
+        
+        plt.setp(autotexts, size=7, weight="bold", color="white")
+        # Adjust text color for light backgrounds
+        for j, val in enumerate(values):
+            label = labels[j]
+            if label_colors[label] in ["#FFFFE0", "#D3D3D3"]:
+                autotexts[j].set_color("black")
+            
+            # Hide if small
+            if (val / sum(values)) < 0.05:
+                autotexts[j].set_text("")
+
+        ax.set_title(facet_title, fontsize=9, fontweight='bold', pad=5)
+        ax.axis('equal')
+
+    # Hide unused
+    for j in range(i + 1, len(axes_list)):
+        axes_list[j].axis('off')
+
+    # Global Legend - Enlarged per user request
+    legend_elements = [plt.Line2D([0], [0], marker='o', color='w', 
+                                  markerfacecolor=label_colors[l], 
+                                  markersize=12, label=l) for l in sorted_labels]
+    
+    fig.legend(handles=legend_elements, loc='lower center', ncol=min(len(sorted_labels), 3), 
+               bbox_to_anchor=(0.5, 0.02), fontsize=11, frameon=True, facecolor='white', edgecolor='#D3D3D3')
+
+    fig.suptitle(title, fontsize=14, fontweight='bold', y=0.98)
+    plt.tight_layout(rect=[0, 0.12, 1, 0.95])
+    
     buffer = io.BytesIO()
     plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
     plt.close(fig)

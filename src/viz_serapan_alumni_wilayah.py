@@ -66,6 +66,10 @@ def generate_alumni_map(prov_counts_df, output_file):
     for index, row in df_map.iterrows():
         prov_name = row['Provinsi']
         count = row['Jumlah']
+        persentase = row.get('Persentase', '')
+        
+        # Prepare label string
+        label_text = f"{count} ({persentase})" if persentase else str(count)
         
         # Cek apakah provinsi ada di database koordinat
         if prov_name in INDO_COORDS:
@@ -81,7 +85,7 @@ def generate_alumni_map(prov_counts_df, output_file):
             folium.CircleMarker(
                 location=[lat, lon],
                 radius=radius,
-                popup=f"<b>{prov_name}</b><br>Jumlah Alumni: {count}",
+                popup=f"<b>{prov_name}</b><br>Jumlah Alumni: {label_text}",
                 color=color,
                 fill=True,
                 fill_color=color,
@@ -92,7 +96,7 @@ def generate_alumni_map(prov_counts_df, output_file):
             if count > 10: 
                 folium.Marker(
                     location=[lat, lon],
-                    icon=folium.DivIcon(html=f"""<div style="font-family: courier new; color: black; font-weight: bold">{count}</div>""")
+                    icon=folium.DivIcon(html=f"""<div style="font-family: courier new; color: black; font-weight: bold; white-space: nowrap;">{label_text}</div>""")
                 ).add_to(m)
                 
     m.save(output_file)

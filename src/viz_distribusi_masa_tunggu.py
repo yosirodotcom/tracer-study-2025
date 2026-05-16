@@ -182,21 +182,42 @@ def get_masa_tunggu_jurusan_line_chart_base64(df):
 
     stats = df_w.groupby(col_jurusan)['mt_numeric'].mean().reset_index()
     stats.columns = ['Jurusan', 'Rata-rata']
-    stats = stats.sort_values('Rata-rata', ascending=False)
+    stats = stats.sort_values('Rata-rata', ascending=True)
 
     plt.style.use('seaborn-v0_8-whitegrid')
     fig, ax = plt.subplots(figsize=(12, 6))
-    x = stats['Jurusan'].astype(str)
-    y = stats['Rata-rata']
-    ax.plot(x, y, marker='o', color='#00008B', linewidth=2.5)
+    x = stats['Jurusan'].astype(str).tolist()
+    y = stats['Rata-rata'].tolist()
+    
+    # Plot the line and all dots
+    ax.plot(x, y, marker='o', color='#00008B', linewidth=2.5, markersize=6)
+    
+    # Highlight the smallest average (first element because sorted ascending)
+    if len(x) > 0:
+        ax.plot(x[0], y[0], marker='o', color='green', markersize=12, zorder=5)
+
     ax.fill_between(x, 0, y, color='#00008B', alpha=0.1)
     ax.set_title("Rata-rata Masa Tunggu per Jurusan (Bulan)", fontsize=14, fontweight='bold', pad=20)
     ax.set_ylabel("Bulan", fontsize=11)
     ax.set_xlabel("Jurusan", fontsize=11)
-    plt.xticks(rotation=45, ha='right')
+    
+    ax.set_xticks(range(len(x)))
+    xtick_labels = ax.set_xticklabels(x, rotation=45, ha='right')
+    
+    if len(xtick_labels) > 0:
+        xtick_labels[0].set_fontsize(14)
+        xtick_labels[0].set_fontweight('bold')
+        xtick_labels[0].set_color('darkblue')
+
     for i, val in enumerate(y):
-        ax.text(i, val + (max(y) * 0.02), f'{val:.1f}', ha='center', va='bottom', fontsize=10, fontweight='bold')
-    ax.set_ylim(0, max(y) * 1.15)
+        if i == 0:
+            # First element: larger font and larger offset to avoid overlap with large green dot
+            ax.text(i, val + (max(y) * 0.06), f'{val:.1f}', ha='center', va='bottom', 
+                    fontsize=13, fontweight='bold')
+        else:
+            ax.text(i, val + (max(y) * 0.02), f'{val:.1f}', ha='center', va='bottom', 
+                    fontsize=10, fontweight='bold')
+    ax.set_ylim(0, max(y) * 1.15 if len(y) > 0 else 1)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     plt.tight_layout()

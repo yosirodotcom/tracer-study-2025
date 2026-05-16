@@ -64,7 +64,7 @@ def create_salary_by_jurusan(df):
     working_status = ['Bekerja (Full time/Part time)', 'Wiraswasta']
     
     if col_salary not in df.columns or col_jurusan not in df.columns:
-        return pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame()
         
     df_filtered = df.copy()
     if col_status in df.columns:
@@ -74,7 +74,7 @@ def create_salary_by_jurusan(df):
     df_filtered = df_filtered.dropna(subset=[col_salary])
     
     if df_filtered.empty:
-        return pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame()
 
     # User Defined Mappings for Mean Calculation
     salary_map = {
