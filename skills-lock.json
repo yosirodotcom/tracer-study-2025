@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "academic-writing": {
+      "source": "jamditis/claude-skills-journalism",
+      "sourceType": "github",
+      "skillPath": "research-toolkit/skills/academic-writing/SKILL.md",
+      "computedHash": "4eecc92d57c8402f75d8529f3e89ee9e8b3c9af4d200deeacd6e97671f455064"
+    },
     "data-visualization": {
       "source": "anthropics/knowledge-work-plugins",
       "sourceType": "github",
@@ -12,6 +18,12 @@
       "sourceType": "github",
       "skillPath": "skills/pandas-pro/SKILL.md",
       "computedHash": "244a87c4e9e20aac2822cdd99a221a7fa6999bf1194abbbd4a5e16bde34bf6ef"
+    },
+    "statistical-analysis": {
+      "source": "anthropics/knowledge-work-plugins",
+      "sourceType": "github",
+      "skillPath": "data/skills/statistical-analysis/SKILL.md",
+      "computedHash": "f3bc611085cf4bdb5e1f82009a5da707d11afc012a28a1df63978e4e66c5fff9"
     }
   }
 }

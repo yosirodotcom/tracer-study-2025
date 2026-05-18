@@ -29,7 +29,7 @@ from viz_serapan_alumni_dudi import create_distribution_kabkota_kalbar, generate
 from viz_pendapatan_gaji import (
     create_salary_distribution, create_salary_by_jurusan, 
     create_salary_prodi_per_jurusan, get_salary_distribution_bell_curve,
-    get_salary_jurusan_lollipop_chart
+    get_salary_jurusan_lollipop_chart, get_salary_distribution_by_prodi_chart
 )
 from viz_peringkat_peforma import create_jurusan_ranking
 
@@ -226,6 +226,14 @@ if __name__ == "__main__":
                         pfx = table_title.replace(" ", "_").lower()
                         df_c = df_jur.set_index('Program Studi')
                         dfs_to_report[table_title] = {"df": df_jur, "charts": get_all_charts(df_c, table_title, pfx)}
+
+                    # Add Stacked Bar Chart for Salary by Prodi
+                    salary_prodi_stacked = get_salary_distribution_by_prodi_chart(df_load)
+                    if salary_prodi_stacked:
+                        dfs_to_report["Visualisasi Distribusi Pendapatan per Program Studi"] = {
+                            "df": pd.DataFrame(), 
+                            "charts": [{"id": "salary_prodi_stacked", "name": "Stacked Bar Chart", "base64": salary_prodi_stacked}]
+                        }
 
             if pilihan in ['1', '9']:
                 df_ranking = create_jurusan_ranking()

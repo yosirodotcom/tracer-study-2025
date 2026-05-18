@@ -1,7 +1,8 @@
 import pandas as pd
 from viz_utils import (
     sort_crosstab_by_total, get_salary_bell_curve_base64,
-    get_salary_jurusan_lollipop_chart_base64
+    get_salary_jurusan_lollipop_chart_base64,
+    get_salary_stacked_bar_chart_base64
 )
 
 def get_salary_distribution_bell_curve(df):
@@ -15,6 +16,91 @@ def get_salary_jurusan_lollipop_chart(df):
     Wrapper for lollipop chart visualization of salary by jurusan.
     """
     return get_salary_jurusan_lollipop_chart_base64(df, "Rata-rata Gaji Lulusan per Jurusan", "gaji_jurusan_lollipop")
+
+def get_salary_distribution_by_prodi_chart(df):
+    """
+    Wrapper for horizontal stacked bar chart of salary distribution by Prodi.
+    """
+    ct = create_salary_distribution_by_prodi(df)
+    if ct.empty:
+        return None
+    return get_salary_stacked_bar_chart_base64(ct, "Distribusi Pendapatan Lulusan per Program Studi")
+
+def create_salary_distribution_by_prodi(df):
+    """
+    Creates a crosstab of Prodi vs Salary Range for working respondents.
+    """
+    col_salary = 'Berapa rata-rata pendapatan Anda per bulan?'
+    col_prodi = 'prodi'
+    if col_prodi not in df.columns and 'Program Studi' in df.columns:
+        col_prodi = 'Program Studi'
+    col_status = 'Jelaskan status Anda saat ini?'
+    working_status = ['Bekerja (Full time/Part time)', 'Wiraswasta']
+    
+    if col_salary not in df.columns or col_prodi not in df.columns:
+        return pd.DataFrame()
+        
+    df_filtered = df.copy()
+    if col_status in df.columns:
+        df_filtered = df_filtered[df_filtered[col_status].isin(working_status)]
+    
+    df_filtered = df_filtered.dropna(subset=[col_salary, col_prodi])
+    
+    if df_filtered.empty:
+        return pd.DataFrame()
+
+    # Custom sort order for salary categories
+    order = [
+        '< Rp. 1.000.000',
+        'Rp. 1.000.001 - Rp. 2.000.000',
+        'Rp. 2.000.001 - Rp. 3.000.000',
+        'Rp. 3.000.001 - Rp. 4.000.000',
+        'Rp. 4.000.001 - Rp. 5.000.000',
+        'Rp. 5.000.001 - Rp. 6.000.000',
+        'Rp. 6.000.001 - Rp. 7.000.000',
+        'Rp. 7.000.001 - Rp. 8.000.000',
+        '> Rp. 8.000.001'
+    ]
+    
+    # Create Crosstab
+    ct = pd.crosstab(df_filtered[col_prodi], df_filtered[col_salary])
+    
+    # Reorder columns according to salary scale
+    available_cols = [o for o in order if o in ct.columns]
+    ct = ct[available_cols]
+    
+    # User Defined Mappings for Mean Calculation
+    salary_map = {
+        '< Rp. 1.000.000': 500000,
+        'Rp. 1.000.001 - Rp. 2.000.000': 1500000,
+        'Rp. 2.000.001 - Rp. 3.000.000': 2500000,
+        'Rp. 3.000.001 - Rp. 4.000.000': 3500000,
+        'Rp. 4.000.001 - Rp. 5.000.000': 4500000,
+        'Rp. 5.000.001 - Rp. 6.000.000': 5500000,
+        'Rp. 6.000.001 - Rp. 7.000.000': 6500000,
+        'Rp. 7.000.001 - Rp. 8.000.000': 7500000,
+        '> Rp. 8.000.001': 8500000
+    }
+
+    # Calculate weighted mean for sorting
+    # Get values for the columns we actually have in the crosstab
+    weights = [salary_map.get(col, 0) for col in ct.columns]
+    
+    # Calculate sum(count * value) / sum(count) for each row
+    ct['Total'] = ct.sum(axis=1)
+    weighted_sum = (ct[ct.columns[:-1]] * weights).sum(axis=1)
+    ct['Mean_Salary'] = weighted_sum / ct['Total']
+    
+    # Sort by Mean_Salary descending
+    ct = ct.sort_values('Mean_Salary', ascending=False)
+    
+    # Format Mean Salary as string
+    ct['Mean_Text'] = ct['Mean_Salary'].apply(lambda x: f"Rp{x/1000000:.1f} Juta" if pd.notna(x) else "")
+    
+    # Remove the numeric Mean_Salary column as it's not needed for the chart segments
+    ct = ct.drop(columns=['Mean_Salary'])
+    
+    return ct
 
 def create_salary_distribution(df):
     """
@@ -93,7 +179,7 @@ def create_salary_by_jurusan(df):
 
     # User Defined Mappings for Mean Calculation
     salary_map = {
-        '< Rp. 1.000.000': 1000000,
+        '< Rp. 1.000.000': 500000,
         'Rp. 1.000.001 - Rp. 2.000.000': 1500000,
         'Rp. 2.000.001 - Rp. 3.000.000': 2500000,
         'Rp. 3.000.001 - Rp. 4.000.000': 3500000,
@@ -101,7 +187,7 @@ def create_salary_by_jurusan(df):
         'Rp. 5.000.001 - Rp. 6.000.000': 5500000,
         'Rp. 6.000.001 - Rp. 7.000.000': 6500000,
         'Rp. 7.000.001 - Rp. 8.000.000': 7500000,
-        '> Rp. 8.000.001': 8000000
+        '> Rp. 8.000.001': 8500000
     }
 
     # Map categories to numeric
@@ -153,7 +239,7 @@ def create_salary_prodi_per_jurusan(df):
         return {}
 
     salary_map = {
-        '< Rp. 1.000.000': 1000000,
+        '< Rp. 1.000.000': 500000,
         'Rp. 1.000.001 - Rp. 2.000.000': 1500000,
         'Rp. 2.000.001 - Rp. 3.000.000': 2500000,
         'Rp. 3.000.001 - Rp. 4.000.000': 3500000,
@@ -161,7 +247,7 @@ def create_salary_prodi_per_jurusan(df):
         'Rp. 5.000.001 - Rp. 6.000.000': 5500000,
         'Rp. 6.000.001 - Rp. 7.000.000': 6500000,
         'Rp. 7.000.001 - Rp. 8.000.000': 7500000,
-        '> Rp. 8.000.001': 8000000
+        '> Rp. 8.000.001': 8500000
     }
 
     df_filtered['salary_num'] = df_filtered[col_salary].map(salary_map)

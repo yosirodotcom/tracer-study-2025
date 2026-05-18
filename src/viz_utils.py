@@ -1749,6 +1749,115 @@ def get_stacked_bar_chart_base64(df, title, chart_id, is_percentage=True, orient
     return base64.b64encode(buffer.getvalue()).decode('utf-8')
 
 
+def get_salary_stacked_bar_chart_base64(df, title):
+    """
+    Generates a horizontal stacked bar chart for salary distribution per Prodi.
+    df: index = Prodi, columns = Salary Categories, values = Counts.
+    Expects a 'Total' column for sorting and labeling.
+    """
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import io
+    import base64
+    import textwrap
+    import matplotlib.cm as cm
+
+    df_plot = df.copy()
+    
+    # Extract Mean_Text if exists
+    mean_texts = None
+    if 'Mean_Text' in df_plot.columns:
+        mean_texts = df_plot['Mean_Text']
+        df_plot = df_plot.drop(columns=['Mean_Text'])
+    
+    # Total column for labeling
+    if 'Total' in df_plot.columns:
+        totals = df_plot['Total']
+        df_plot = df_plot.drop(columns=['Total'])
+    else:
+        totals = df_plot.sum(axis=1)
+        
+    # Remove Total rows
+    rows_to_drop = [i for i in df_plot.index if 'total' in str(i).lower()]
+    if rows_to_drop: 
+        df_plot = df_plot.drop(index=rows_to_drop)
+        totals = totals.drop(index=rows_to_drop)
+        if mean_texts is not None:
+            mean_texts = mean_texts.drop(index=rows_to_drop)
+
+    # Normalize for stack (proportions)
+    df_pct = df_plot.div(totals.replace(0, 1), axis=0) * 100
+    
+    # Wrap labels
+    df_plot.index = [textwrap.fill(str(l), width=25) for l in df_plot.index]
+    df_pct.index = df_plot.index
+    
+    # Reverse for top-to-bottom reading
+    df_pct = df_pct.iloc[::-1]
+    df_raw = df_plot.iloc[::-1]
+    totals_sorted = totals.iloc[::-1]
+    mean_texts_sorted = mean_texts.iloc[::-1] if mean_texts is not None else None
+
+    # Colors: YlGnBu gradient for the categories
+    colors = cm.YlGnBu(np.linspace(0.15, 0.85, len(df_plot.columns)))
+
+    plt.style.use('seaborn-v0_8-whitegrid')
+    fig, ax = plt.subplots(figsize=(14, max(8, len(df_plot) * 0.7)))
+    
+    # Plot bars
+    df_pct.plot(kind='barh', stacked=True, ax=ax, color=colors, edgecolor='white', linewidth=0.5, width=0.8)
+    
+    ax.set_xlim(0, 125)
+    ax.set_xlabel("Proporsi (%)", fontsize=12)
+    
+    # Add Total N labels next to bars
+    for i, (idx, total) in enumerate(totals_sorted.items()):
+        label_text = f'(N={int(total)})'
+        if mean_texts_sorted is not None:
+            mean_val = mean_texts_sorted.iloc[i]
+            if mean_val:
+                label_text = f'(N={int(total)} | {mean_val})'
+        ax.text(101, i, label_text, va='center', ha='left', fontsize=10, fontweight='bold', color='#333')
+
+    # Add labels inside: "Count (Pct%)"
+    for j, col in enumerate(df_pct.columns):
+        for i in range(len(df_pct)):
+            pct_val = df_pct.iloc[i, j]
+            raw_val = df_raw.iloc[i, j]
+            
+            if pct_val > 4: # Only if large enough to fit text
+                # Calculate center of the segment
+                left_pos = df_pct.iloc[i, :j].sum()
+                center_x = left_pos + pct_val / 2
+                
+                # Determine text color based on background darkness (YlGnBu gradient)
+                # Later half of YlGnBu is darker, use white text
+                text_color = 'white' if j > len(df_pct.columns)//2 else 'black'
+                
+                # For very small segments, maybe use smaller font
+                fsize = 9 if pct_val > 8 else 7
+                
+                ax.text(center_x, i, f'{int(raw_val)} ({pct_val:.0f}%)', 
+                        va='center', ha='center', fontsize=fsize, fontweight='bold', color=text_color)
+
+    ax.set_title(title, fontsize=18, fontweight='bold', pad=35)
+    
+    # Clean up grid and spines
+    ax.grid(False)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    
+    # Move legend to top
+    ax.legend(title="Rentang Pendapatan", loc='lower center', bbox_to_anchor=(0.5, 1.02), 
+              ncol=3, fontsize=10, frameon=True, shadow=True)
+
+    plt.tight_layout()
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    return base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+
 def get_facet_pie_chart_base64(data_dict, title, n_cols=6):
     """
     Generates a facet grid of pie charts with a global legend.
@@ -1893,7 +2002,7 @@ def get_salary_bell_curve_base64(df, title, chart_id):
         'Rp. 5.000.001 - Rp. 6.000.000': 5500000,
         'Rp. 6.000.001 - Rp. 7.000.000': 6500000,
         'Rp. 7.000.001 - Rp. 8.000.000': 7500000,
-        '> Rp. 8.000.001': 9500000
+        '> Rp. 8.000.001': 8500000
     }
     
     # Drop rows where salary is missing
