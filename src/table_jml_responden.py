@@ -5,7 +5,6 @@ from viz_utils import (
     get_all_charts, get_smooth_trend_chart_base64,
     get_waktu_tunggu_global_smooth_line_chart_base64,
     get_waktu_tunggu_facet_smooth_line_chart_base64,
-   
     get_waktu_tunggu_prodi_facet_smooth_line_chart_base64,
     generate_html_report
 
@@ -27,7 +26,11 @@ from viz_serapan_lulusan import (
 )
 from viz_serapan_alumni_wilayah import create_distribution_provinsi, generate_alumni_map
 from viz_serapan_alumni_dudi import create_distribution_kabkota_kalbar, generate_kalbar_map
-from viz_pendapatan_gaji import create_salary_distribution, create_salary_by_jurusan, create_salary_prodi_per_jurusan
+from viz_pendapatan_gaji import (
+    create_salary_distribution, create_salary_by_jurusan, 
+    create_salary_prodi_per_jurusan, get_salary_distribution_bell_curve,
+    get_salary_jurusan_lollipop_chart
+)
 from viz_peringkat_peforma import create_jurusan_ranking
 
 if __name__ == "__main__":
@@ -197,13 +200,26 @@ if __name__ == "__main__":
                 df_salary = create_salary_distribution(df_load)
                 if not df_salary.empty:
                     df_s_chart = df_salary.set_index('Rata-rata Pendapatan').copy()
-                    dfs_to_report["Distribusi Rata-rata Pendapatan Lulusan per Bulan"] = {"df": df_salary, "charts": get_all_charts(df_s_chart, "Distribusi Gaji", "gaji")}
+                    charts_salary = get_all_charts(df_s_chart, "Distribusi Gaji", "gaji")
+                    
+                    # Add Bell Curve Chart
+                    bell_curve = get_salary_distribution_bell_curve(df_load)
+                    if bell_curve:
+                        charts_salary.insert(0, {"id": "gaji_bell_curve", "name": "Bell Curve", "base64": bell_curve})
+                        
+                    dfs_to_report["Distribusi Rata-rata Pendapatan Lulusan per Bulan"] = {"df": df_salary, "charts": charts_salary}
 
                 result_salary = create_salary_by_jurusan(df_load)
                 if result_salary and not result_salary[0].empty:
                     df_salary_display, df_salary_ranked = result_salary
                     df_sj_chart = df_salary_ranked.set_index('Jurusan').copy()
-                    dfs_to_report["Rata-rata Gaji Lulusan per Jurusan"] = {"df": df_salary_display, "charts": get_all_charts(df_sj_chart, "Gaji per Jurusan", "gaji_jurusan")}
+                    charts_sj = [
+                        {"id": "gaji_jurusan_lollipop", "name": "Lollipop Chart", "base64": get_salary_jurusan_lollipop_chart(df_sj_chart)}
+                    ]
+                    # Also keep the other charts if desired, but Lollipop is the main one now
+                    charts_sj.extend(get_all_charts(df_sj_chart, "Gaji per Jurusan", "gaji_jurusan"))
+                    
+                    dfs_to_report["Rata-rata Gaji Lulusan per Jurusan"] = {"df": df_salary_display, "charts": charts_sj}
                     
                     dict_salary_prodi = create_salary_prodi_per_jurusan(df_load)
                     for table_title, df_jur in dict_salary_prodi.items():

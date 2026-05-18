@@ -1867,6 +1867,195 @@ def get_facet_pie_chart_base64(data_dict, title, n_cols=6):
     return base64.b64encode(buffer.getvalue()).decode('utf-8')
 
 
+def get_salary_bell_curve_base64(df, title, chart_id):
+    """
+    Generates a modern and eye-catching Normal Distribution (Bell Curve) chart 
+    for Salary/Income data.
+    """
+    col_salary = 'Berapa rata-rata pendapatan Anda per bulan?'
+    col_status = 'Jelaskan status Anda saat ini?'
+    working_status = ['Bekerja (Full time/Part time)', 'Wiraswasta']
+    
+    if col_salary not in df.columns:
+        return None
+        
+    df_filtered = df.copy()
+    if col_status in df.columns:
+        df_filtered = df_filtered[df_filtered[col_status].isin(working_status)]
+    
+    # Map categories to numeric values (midpoints)
+    salary_map = {
+        '< Rp. 1.000.000': 500000,
+        'Rp. 1.000.001 - Rp. 2.000.000': 1500000,
+        'Rp. 2.000.001 - Rp. 3.000.000': 2500000,
+        'Rp. 3.000.001 - Rp. 4.000.000': 3500000,
+        'Rp. 4.000.001 - Rp. 5.000.000': 4500000,
+        'Rp. 5.000.001 - Rp. 6.000.000': 5500000,
+        'Rp. 6.000.001 - Rp. 7.000.000': 6500000,
+        'Rp. 7.000.001 - Rp. 8.000.000': 7500000,
+        '> Rp. 8.000.001': 9500000
+    }
+    
+    # Drop rows where salary is missing
+    df_filtered = df_filtered.dropna(subset=[col_salary])
+    if df_filtered.empty:
+        return None
+        
+    # Get raw numeric values for statistics
+    numeric_salaries = df_filtered[col_salary].map(salary_map).dropna()
+    
+    if len(numeric_salaries) < 2:
+        return None
+        
+    mu = numeric_salaries.mean()
+    sigma = numeric_salaries.std()
+    
+    # If sigma is 0 (all same salary), we can't plot a curve
+    if sigma == 0:
+        sigma = 100000 # dummy small spread
+
+    # Prepare plotting data
+    from scipy.stats import norm
+    
+    # X range for the curve: 3 standard deviations around mean, clipped to 0
+    x_min = max(0, mu - 4*sigma)
+    x_max = mu + 4*sigma
+    x = np.linspace(x_min, x_max, 500)
+    y = norm.pdf(x, mu, sigma)
+    
+    # Actual distribution (histogram-like bins)
+    salary_counts = df_filtered[col_salary].value_counts().reset_index()
+    salary_counts.columns = ['Category', 'Count']
+    salary_counts['Value'] = salary_counts['Category'].map(salary_map)
+    salary_counts = salary_counts.sort_values('Value')
+    
+    # Normalize histogram to match PDF scale for overlay
+    bin_width = 1000000 # 1 Million steps
+    total_count = salary_counts['Count'].sum()
+    salary_counts['PDF_Scale'] = salary_counts['Count'] / (total_count * bin_width)
+    
+    # Plotting
+    plt.style.use('seaborn-v0_8-whitegrid')
+    fig, ax = plt.subplots(figsize=(12, 7))
+    
+    # 1. Background Bars (Modern Transparent Bars)
+    ax.bar(salary_counts['Value'], salary_counts['PDF_Scale'], 
+           width=bin_width*0.8, color='#87CEEB', alpha=0.3, label='Distribusi Frekuensi',
+           edgecolor='white', linewidth=1)
+    
+    # 2. The Normal Curve (Thick and Smooth)
+    ax.plot(x, y, color='#00008B', linewidth=3.5, label='Kurva Distribusi Normal')
+    
+    # 3. Gradient Fill under curve
+    ax.fill_between(x, 0, y, color='#00008B', alpha=0.1)
+    
+    # 4. Vertical line for Mean
+    ax.axvline(mu, color='#FF4500', linestyle='--', linewidth=2, label=f'Rata-rata: Rp{mu/1000000:.1f} Juta')
+    
+    # 5. Annotation for Mean
+    ax.annotate(f'Rata-rata\nRp{mu/1000000:.1f} Juta', 
+                xy=(mu, norm.pdf(mu, mu, sigma)), 
+                xytext=(mu + 0.5*sigma, norm.pdf(mu, mu, sigma) * 1.1),
+                arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0.2', color='#FF4500'),
+                fontsize=11, fontweight='bold', color='#FF4500',
+                bbox=dict(boxstyle='round,pad=0.5', fc='white', alpha=0.8, ec='#FF4500'))
+
+    # Formatting
+    ax.set_xlabel('Pendapatan per Bulan (Rupiah)', fontsize=12, labelpad=10)
+    
+    # Format X ticks as millions
+    ax.get_xaxis().set_major_formatter(
+        plt.FuncFormatter(lambda x, p: format(int(x/1000000), ',') + ' Juta'))
+    
+    # Clean spines
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.get_yaxis().set_visible(False) # Hide PDF scale, focus on curve
+    
+    plt.tight_layout()
+    
+    # Return as base64
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    return base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+
+def get_salary_jurusan_lollipop_chart_base64(df, title, chart_id):
+    """
+    Generates a high-quality, magazine-style Horizontal Lollipop Chart 
+    for Average Salary per Jurusan.
+    """
+    df_plot = df.copy()
+    
+    # Identify value column (usually 'Total' or numeric)
+    # The calling script passes a DF with 'Total' column
+    if 'Total' not in df_plot.columns:
+        numeric_cols = df_plot.select_dtypes(include=[np.number]).columns
+        if not numeric_cols.empty:
+            df_plot = df_plot.rename(columns={numeric_cols[0]: 'Total'})
+        else:
+            return None
+            
+    # Remove Total row if exists
+    rows_to_drop = [i for i in df_plot.index if 'total' in str(i).lower()]
+    if rows_to_drop: df_plot = df_plot.drop(index=rows_to_drop)
+    
+    # Sort by salary ascending (for horizontal chart to show highest at top)
+    df_plot = df_plot.sort_values(by='Total', ascending=True)
+    
+    values = df_plot['Total']
+    labels = df_plot.index.astype(str)
+    
+    if len(values) == 0: return None
+
+    # Style
+    plt.style.use('seaborn-v0_8-whitegrid')
+    fig, ax = plt.subplots(figsize=(12, max(6, len(labels) * 0.7)))
+    
+    # 1. Draw horizontal lines
+    ax.hlines(y=labels, xmin=0, xmax=values, color='#D3D3D3', linewidth=2, alpha=0.6)
+    
+    # 2. Draw the "lollipop" dots
+    # Highlight max with a larger marker or different color? 
+    # Let's use DarkBlue for all for consistency, but bold.
+    ax.plot(values, labels, "o", markersize=12, color='#00008B', markeredgecolor='white', markeredgewidth=1.5)
+    
+    # 3. Add Data Labels (Rp X.X Juta)
+    for i, val in enumerate(values):
+        ax.text(val + (max(values)*0.02), i, f'Rp{val/1000000:.1f} Juta', 
+                va='center', ha='left', fontsize=11, fontweight='bold', color='#00008B')
+
+    # Formatting
+    ax.set_title(title, fontsize=16, fontweight='bold', pad=30)
+    
+    # Set X-axis limits with padding for labels
+    ax.set_xlim(0, max(values) * 1.3)
+    
+    # Format X ticks as millions
+    ax.get_xaxis().set_major_formatter(
+        plt.FuncFormatter(lambda x, p: format(int(x/1000000), ',') + ' Juta'))
+    
+    # Clean spines
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    
+    # Grid
+    ax.grid(visible=True, axis='x', linestyle='--', alpha=0.4)
+    ax.grid(visible=False, axis='y')
+    
+    plt.tight_layout()
+    
+    # Return as base64
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    return base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+
 def get_all_charts(df, title, prefix):
     """Helper to generate bar, pie, and line charts for a dataframe."""
     charts = []

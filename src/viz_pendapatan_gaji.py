@@ -1,5 +1,20 @@
 import pandas as pd
-from viz_utils import sort_crosstab_by_total
+from viz_utils import (
+    sort_crosstab_by_total, get_salary_bell_curve_base64,
+    get_salary_jurusan_lollipop_chart_base64
+)
+
+def get_salary_distribution_bell_curve(df):
+    """
+    Wrapper for bell curve visualization of salary distribution.
+    """
+    return get_salary_bell_curve_base64(df, "Kurva Distribusi Normal Pendapatan Lulusan", "gaji_bell_curve")
+
+def get_salary_jurusan_lollipop_chart(df):
+    """
+    Wrapper for lollipop chart visualization of salary by jurusan.
+    """
+    return get_salary_jurusan_lollipop_chart_base64(df, "Rata-rata Gaji Lulusan per Jurusan", "gaji_jurusan_lollipop")
 
 def create_salary_distribution(df):
     """
