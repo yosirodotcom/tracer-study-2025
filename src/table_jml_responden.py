@@ -251,6 +251,7 @@ if __name__ == "__main__":
             print("Laporan selesai dibuat!\n")
         
     except Exception as e:
+        
         print(f"Error executing main: {e}")
         import traceback
         traceback.print_exc()

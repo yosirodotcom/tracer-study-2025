@@ -24,6 +24,12 @@
       "sourceType": "github",
       "skillPath": "data/skills/statistical-analysis/SKILL.md",
       "computedHash": "f3bc611085cf4bdb5e1f82009a5da707d11afc012a28a1df63978e4e66c5fff9"
+    },
+    "word-document-processor": {
+      "source": "qodex-ai/ai-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/word-document-processor/SKILL.md",
+      "computedHash": "64fe859ec69a58c9dc3d1ac38c751ede52a602dfc03268cdad69faa5b74a1779"
     }
   }
 }
