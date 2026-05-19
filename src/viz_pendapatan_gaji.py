@@ -99,7 +99,7 @@ def create_salary_distribution_by_prodi(df):
     
     # Remove the numeric Mean_Salary column as it's not needed for the chart segments
     ct = ct.drop(columns=['Mean_Salary'])
-    
+
     return ct
 
 def create_salary_distribution(df):
